@@ -21,7 +21,7 @@ int32_t __gc_fuzzy(
         blink_fuzzy__Vec_uint32_t*);
 ]])
 
-local rust = ffi.load(debug.getinfo(1).source:match('@?(.*/)') .. '/target/release/libblink_fuzzy.so')
+local rust = ffi.load(debug.getinfo(1).source:match('@?(.*/)') .. 'target/release/libblink_fuzzy.so')
 
 local M = {}
 

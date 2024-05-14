@@ -1,0 +1,16 @@
+[package]
+name = "blink-fuzzy"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+generator = { git = "https://github.com/distil/rust_lua_ffi" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+libc = "0.2.20"
+c-marshalling = { git = "https://github.com/distil/rust_lua_ffi" }
+lua-marshalling = { git = "https://github.com/distil/rust_lua_ffi" }
+nucleo = "0.5.0"

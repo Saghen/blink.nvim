@@ -32,7 +32,7 @@ M.setup = function(config)
       local bufnr = vim.api.nvim_get_current_buf()
       if M.attached_bufs[bufnr] == nil then return end
       local scroll_range = Utils.get_scroll_range()
-      measure_time(function()
+      vim.defer_fn(function()
         vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
         local indent_levels, scope_range = M.get_indent_levels(bufnr, scroll_range[1], scroll_range[2])
         scope.partial_draw(ns, indent_levels, bufnr, scope_range[1], scope_range[2], scroll_range[1], scroll_range[2])

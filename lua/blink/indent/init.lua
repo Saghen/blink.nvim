@@ -4,42 +4,39 @@ local Utils = require('blink.indent.utils')
 
 local M = {}
 
-M.attached_bufs = {}
-
 M.setup = function(config)
+  local ns = vim.api.nvim_create_namespace('indent')
+
+  vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized' }, {
+    callback = function()
+      local scroll_ranges = Utils.get_scroll_ranges_from_win_scrolled(vim.v.event)
+      vim.defer_fn(function() M.draw(ns, scroll_ranges) end, 0)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'CursorMoved', 'CursorMovedI' }, {
+    pattern = '*',
+    callback = function()
+      local scroll_ranges = Utils.get_scroll_ranges(vim.api.nvim_get_current_buf())
+      vim.defer_fn(function() M.draw(ns, scroll_ranges) end, 0)
+    end,
+  })
+end
+
+M.draw = function(ns, scroll_ranges)
   local static = require('blink.indent.static')
   local scope = require('blink.indent.scope')
 
-  M.deferred = false
+  for _, range in ipairs(scroll_ranges) do
+    if Utils.is_buf_blocked(range.bufnr) then goto continue end
 
-  local ns = vim.api.nvim_create_namespace('indent')
+    local indent_levels, scope_range = M.get_indent_levels(range.bufnr, range.start_line, range.end_line)
+    vim.api.nvim_buf_clear_namespace(range.bufnr, ns, 0, -1)
+    scope.partial_draw(ns, indent_levels, range.bufnr, scope_range[1], scope_range[2], range.start_line, range.end_line)
+    static.partial_draw(ns, indent_levels, range.bufnr, range.start_line, range.end_line)
 
-  vim.api.nvim_create_autocmd({ 'BufEnter', 'FileType' }, {
-    callback = function()
-      local bufnr = vim.api.nvim_get_current_buf()
-      local is_blocked = Utils.is_buf_blocked(bufnr)
-      if is_blocked then
-        M.attached_bufs[bufnr] = nil
-        -- fixme: should clear
-        return
-      end
-      M.attached_bufs[bufnr] = true
-    end,
-  })
-
-  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'CursorMoved', 'CursorMovedI', 'WinScrolled' }, {
-    callback = function()
-      local bufnr = vim.api.nvim_get_current_buf()
-      if M.attached_bufs[bufnr] == nil then return end
-      local scroll_range = Utils.get_scroll_range()
-      vim.defer_fn(function()
-        vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-        local indent_levels, scope_range = M.get_indent_levels(bufnr, scroll_range[1], scroll_range[2])
-        scope.partial_draw(ns, indent_levels, bufnr, scope_range[1], scope_range[2], scroll_range[1], scroll_range[2])
-        static.partial_draw(ns, indent_levels, bufnr, scroll_range[1], scroll_range[2])
-      end, 0)
-    end,
-  })
+    ::continue::
+  end
 end
 
 M.get_indent_levels = function(bufnr, start_line, end_line)

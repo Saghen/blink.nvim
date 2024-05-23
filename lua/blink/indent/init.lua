@@ -7,36 +7,30 @@ local M = {}
 M.setup = function(config)
   local ns = vim.api.nvim_create_namespace('indent')
 
-  vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized' }, {
-    callback = function()
-      local scroll_ranges = Utils.get_scroll_ranges_from_win_scrolled(vim.v.event)
-      vim.defer_fn(function() M.draw(ns, scroll_ranges) end, 0)
+  vim.api.nvim_set_decoration_provider(ns, {
+    on_win = function(_, winnr, bufnr)
+      local static = require('blink.indent.static')
+      local scope = require('blink.indent.scope')
+
+      if Utils.is_buf_blocked(bufnr) then return end
+
+      local range = Utils.get_win_scroll_range(winnr)
+      if range.end_line == range.start_line then return end
+
+      vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+      local indent_levels, scope_range = M.get_indent_levels(range.bufnr, range.start_line, range.end_line)
+      scope.partial_draw(
+        ns,
+        indent_levels,
+        range.bufnr,
+        scope_range[1],
+        scope_range[2],
+        range.start_line,
+        range.end_line
+      )
+      static.partial_draw(ns, indent_levels, range.bufnr, range.start_line, range.end_line)
     end,
   })
-
-  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'CursorMoved', 'CursorMovedI' }, {
-    pattern = '*',
-    callback = function()
-      local scroll_ranges = Utils.get_scroll_ranges(vim.api.nvim_get_current_buf())
-      vim.defer_fn(function() M.draw(ns, scroll_ranges) end, 0)
-    end,
-  })
-end
-
-M.draw = function(ns, scroll_ranges)
-  local static = require('blink.indent.static')
-  local scope = require('blink.indent.scope')
-
-  for _, range in ipairs(scroll_ranges) do
-    if Utils.is_buf_blocked(range.bufnr) then goto continue end
-
-    local indent_levels, scope_range = M.get_indent_levels(range.bufnr, range.start_line, range.end_line)
-    vim.api.nvim_buf_clear_namespace(range.bufnr, ns, 0, -1)
-    scope.partial_draw(ns, indent_levels, range.bufnr, scope_range[1], scope_range[2], range.start_line, range.end_line)
-    static.partial_draw(ns, indent_levels, range.bufnr, range.start_line, range.end_line)
-
-    ::continue::
-  end
 end
 
 M.get_indent_levels = function(bufnr, start_line, end_line)

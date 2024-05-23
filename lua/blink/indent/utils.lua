@@ -16,7 +16,13 @@ local blocked_buftypes = { terminal = true, quickfix = true, nofile = true, prom
 local rainbow_hl_groups = { 'RainbowOrange', 'RainbowPurple', 'RainbowBlue' }
 local rainbow_underline_hl_groups = { 'RainbowOrangeUnderline', 'RainbowPurpleUnderline', 'RainbowBlueUnderline' }
 
-function M.get_shiftwidth(bufnr) return math.max(vim.api.nvim_buf_get_option(bufnr, 'shiftwidth'), 1) end
+function M.get_shiftwidth(bufnr)
+  local shiftwidth = vim.api.nvim_buf_get_option(bufnr, 'shiftwidth')
+  -- todo: is this correct?
+  if shiftwidth == 0 then shiftwidth = vim.api.nvim_buf_get_option(bufnr, 'tabstop') end
+  -- should this default to 2 if shiftwidth == 0?
+  return math.max(shiftwidth, 1)
+end
 
 function M.get_line_indent_level(bufnr, line_number, shiftwidth)
   local line = M.get_line(bufnr, line_number)
@@ -49,37 +55,6 @@ M.is_buf_blocked = function(buf)
   local is_blocked_buftype = blocked_buftypes[buftype] ~= nil
 
   return is_blocked_filetype or is_blocked_buftype
-end
-
-M.get_scroll_ranges = function(bufnr)
-  -- Get the list of windows displaying the buffer
-  local wins = vim.api.nvim_list_wins()
-
-  local scroll_ranges = {}
-  local line_count = vim.api.nvim_buf_line_count(bufnr)
-  if line_count == 0 then return {} end
-
-  -- Iterate over the windows
-  for _, winnr in ipairs(wins) do
-    local win_bufnr = vim.api.nvim_win_get_buf(winnr)
-    if win_bufnr == bufnr then table.insert(scroll_ranges, M.get_win_scroll_range(winnr)) end
-  end
-
-  return scroll_ranges
-end
-
-M.get_scroll_ranges_from_win_scrolled = function(event)
-  local scroll_ranges = {}
-
-  -- Iterate over the windows, ignoring the 'all' key
-  for winnr, _ in pairs(event) do
-    -- stylua: ignore
-    if winnr ~= 'all' and tonumber(winnr) ~= nil then
-      table.insert(scroll_ranges, M.get_win_scroll_range(tonumber(winnr)))
-    end
-  end
-
-  return scroll_ranges
 end
 
 M.get_win_scroll_range = function(winnr)

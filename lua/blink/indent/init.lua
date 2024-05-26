@@ -18,7 +18,7 @@ M.setup = function(config)
       if range.end_line == range.start_line then return end
 
       vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-      local indent_levels, scope_range = M.get_indent_levels(range.bufnr, range.start_line, range.end_line)
+      local indent_levels, scope_range = M.get_indent_levels(winnr, range.bufnr, range.start_line, range.end_line)
       scope.partial_draw(
         ns,
         indent_levels,
@@ -33,11 +33,12 @@ M.setup = function(config)
   })
 end
 
-M.get_indent_levels = function(bufnr, start_line, end_line)
+M.get_indent_levels = function(winnr, bufnr, start_line, end_line)
   local indent_levels = {}
   local shiftwidth = Utils.get_shiftwidth(bufnr)
 
-  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+  local cursor_line = vim.api.nvim_win_get_cursor(winnr)[1]
+
   local scope_indent_level = Utils.get_indent_level(Utils.get_line(bufnr, cursor_line), shiftwidth)
   local scope_next_line = Utils.get_line(bufnr, cursor_line + 1)
   local scope_next_indent_level = scope_next_line ~= nil and Utils.get_indent_level(scope_next_line, shiftwidth)

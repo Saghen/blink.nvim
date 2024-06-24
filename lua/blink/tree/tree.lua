@@ -1,4 +1,3 @@
-local sep = '/'
 local config = {
   hide_dotfiles = true,
   hide = { ['node_modules'] = true, ['.git'] = true, ['.cache'] = true },
@@ -15,26 +14,21 @@ function Tree.make_root()
   local home = vim.env.HOME
   if home ~= nil and vim.startswith(path, home) then filename = '~' .. string.sub(path, string.len(home) + 1) end
 
-  return {
-    path = path,
-    children = {},
-    filename = filename,
-    is_dir = true,
-    ignored = false,
-    expanded = true,
-  }
+  local node = Tree.make_node(nil, path, filename, true)
+  node.expanded = true
+  return node
 end
 
-function Tree.make_node(parent, path, is_dir)
+function Tree.make_node(parent, path, filename, is_dir)
   local node = {
     parent = parent,
     children = {},
 
     path = path,
-    filename = string.match(path, '[^' .. sep .. ']+$'),
+    filename = filename,
     is_dir = is_dir,
     ignored = config.hide[path] or false,
-    expanded = true,
+    expanded = false,
   }
 
   return node

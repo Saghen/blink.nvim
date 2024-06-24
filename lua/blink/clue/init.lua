@@ -1510,7 +1510,6 @@ H.query_to_title = function(query) return H.keytrans(H.query_to_keys(query)) end
 
 -- Window ---------------------------------------------------------------------
 H.window_update = vim.schedule_wrap(function(same_content)
-  start_time = vim.loop.hrtime()
   -- Make sure that outdated windows are not shown
   if #H.state.query == 0 then return H.window_close() end
   local win_id = H.state.win_id
@@ -1541,8 +1540,6 @@ H.window_update = vim.schedule_wrap(function(same_content)
 
   -- Add redraw because Neovim won't do it when `getcharstr()` is active
   vim.cmd('redraw')
-
-  print('Window update time:', ((vim.loop.hrtime() - start_time) / 1e6) .. 'ms')
 end)
 
 H.window_scroll = function(is_scroll_down)

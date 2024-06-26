@@ -23,6 +23,8 @@ function M.setup()
       instance:focus()
     elseif arg == 'update' then
       instance:update()
+    elseif arg == 'reveal' then
+      instance:reveal()
     end
   end, { nargs = 1 })
 end

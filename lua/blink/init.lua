@@ -3,7 +3,7 @@ local M = {}
 function M.setup()
   require('blink.cmp').setup()
   require('blink.indent').setup()
-  -- require('blink.tree').setup()
+  require('blink.tree').setup()
 
   -- todo: tepmorary
   -- local clue = require('blink.clue')

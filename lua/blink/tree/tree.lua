@@ -29,6 +29,9 @@ function Tree.make_node(parent, path, filename, is_dir)
     is_dir = is_dir,
     ignored = config.hide[path] or false,
     expanded = false,
+
+    cut = false,
+    copy = false,
   }
 
   return node

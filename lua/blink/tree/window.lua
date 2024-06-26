@@ -48,21 +48,30 @@ function Window.new()
     end,
   })
 
-  -- update every 2s
-  -- vim.loop.new_timer():start(
-  --   2000,
-  --   2000,
-  --   vim.schedule_wrap(function()
-  --     if self.winnr ~= nil then self:update(true) end
-  --   end)
-  -- )
+  -- recreate the tree on dir change
+  api.nvim_create_autocmd('DirChanged', {
+    callback = function()
+      self.tree = nil
+      self:update()
+    end,
+  })
+
+  -- poll based updating
+  -- TODO: should be event based
+  vim.loop.new_timer():start(
+    1000,
+    1000,
+    vim.schedule_wrap(function()
+      if self.winnr ~= nil then self:update(true) end
+    end)
+  )
 
   return self
 end
 
 function Window:ensure_buffer()
   -- TODO: should check if buffer is valid and cleanup previous
-  if self.bufnr ~= nil then return end
+  if self.bufnr ~= nil and api.nvim_buf_is_valid(self.bufnr) then return end
 
   self.bufnr = api.nvim_create_buf(false, true)
   api.nvim_set_option_value('buftype', 'nofile', { buf = self.bufnr })
@@ -104,10 +113,81 @@ function Window:ensure_buffer()
   map('n', '<2-LeftMouse>', activate)
   map('n', 'R', function() self:update() end)
   map('n', 'a', function()
-    popup.new_input(
-      { title = 'New File (append / for dir)', title_pos = 'center' },
-      function(input) print('Input:', input) end
-    )
+    local node = self.renderer:get_hovered_node()
+    while node ~= nil and node.is_dir == false do
+      node = node.parent
+    end
+    if node == nil then return end
+
+    popup.new_input({ title = 'New File (append / for dir)', title_pos = 'center' }, function(input)
+      filesystem.create_path(node.path, input)
+      self:update()
+    end)
+  end)
+  map('n', 'd', function()
+    local node = self.renderer:get_hovered_node()
+    if node == nil then return end
+
+    vim.loop.spawn('trash', { args = { node.path } }, function(code)
+      if code ~= 0 then print('Failed to delete: ' .. node.path) end
+      self:update()
+    end)
+  end)
+  map('n', 'r', function()
+    local node = self.renderer:get_hovered_node()
+    if node == nil then return end
+
+    popup.new_input({ title = 'Rename', title_pos = 'center', initial_text = node.filename }, function(input)
+      -- FIXME: would break if they rename the top level dir
+      filesystem.rename_path(node.path, node.parent.path .. '/' .. input)
+      self:update()
+    end)
+  end)
+  map('n', 'x', function()
+    local node = self.renderer:get_hovered_node()
+    if node == nil then return end
+
+    node.cut = not node.cut
+    self:update()
+  end)
+  map('n', 'y', function()
+    local node = self.renderer:get_hovered_node()
+    if node == nil then return end
+
+    node.copy = not node.copy
+    self:update()
+  end)
+  map('n', 'p', function()
+    local node = self.renderer:get_hovered_node()
+    while node ~= nil and node.is_dir == false do
+      node = node.parent
+    end
+    if node == nil then return end
+
+    local cut_nodes = {}
+    local copied_nodes = {}
+    local function traverse_cut_copied_nodes(node)
+      if node.cut then
+        table.insert(cut_nodes, node)
+      elseif node.copy then
+        table.insert(copied_nodes, node)
+      end
+      for _, child in ipairs(node.children) do
+        traverse_cut_copied_nodes(child)
+      end
+    end
+    traverse_cut_copied_nodes(self.tree)
+
+    for _, cut_node in ipairs(cut_nodes) do
+      filesystem.rename_path(cut_node.path, node.path .. '/' .. cut_node.filename)
+      cut_node.cut = false
+    end
+    for _, copied_node in ipairs(copied_nodes) do
+      filesystem.copy_path(copied_node.path, node.path .. '/' .. copied_node.filename)
+      copied_node.copy = false
+    end
+
+    self:update()
   end)
 
   -- hide the cursor when window is focused
@@ -118,7 +198,6 @@ function Window:ensure_buffer()
     callback = function()
       if self.bufnr == api.nvim_get_current_buf() and prev_cursor == nil then
         prev_cursor = api.nvim_get_option_value('guicursor', {})
-        print(prev_cursor)
         api.nvim_set_option_value('guicursor', 'n:block-Cursor', {})
 
         local cursor_hl = api.nvim_get_hl(0, { name = 'Cursor' })
@@ -143,54 +222,67 @@ function Window:ensure_buffer()
 end
 
 function Window:update(only_on_fs_change)
-  local total_start = vim.loop.hrtime()
   -- use existing tree or create new one
   local root = self.tree or require('blink.tree.tree').make_root()
 
-  local build_tree_start = vim.loop.hrtime()
   filesystem.build_tree(root, function(tree, changed)
-    local build_tree_total = vim.loop.hrtime() - build_tree_start
     self.tree = tree
 
-    local tree_size = 0
-    local function count_nodes(node)
-      tree_size = tree_size + 1
-      for _, child in ipairs(node.children) do
-        count_nodes(child)
-      end
-    end
-    count_nodes(tree)
-
     -- nothing changed so don't render
-    if not changed and only_on_fs_change then
-      print('UNCHANGED | Tree Size: ' .. tree_size .. ' | Build tree: ' .. build_tree_total / 1e6 .. 'ms')
-      return
-    end
-
-    vim.schedule(function()
-      local render_start = vim.loop.hrtime()
-      self:render()
-      local render_total = vim.loop.hrtime() - render_start
-      local total_time = vim.loop.hrtime() - total_start
-
-      print(
-        'CHANGED | Tree Size: '
-          .. tree_size
-          .. ' | Build tree: '
-          .. build_tree_total / 1e6
-          .. 'ms | Render: '
-          .. render_total / 1e6
-          .. 'ms | Total: '
-          .. total_time / 1e6
-          .. 'ms'
-      )
-    end)
+    if not changed and only_on_fs_change then return end
+    -- otherwise render
+    vim.schedule(function() self:render() end)
   end)
 end
 
 function Window:render()
   if not api.nvim_win_is_valid(self.winnr) or self.tree == nil then return end
   self.nodes_by_line = self.renderer:render_window(self.winnr, self.tree)
+end
+
+local function find_path(node, path)
+  if node.path == path then return node end
+  for _, child in ipairs(node.children) do
+    local found = find_path(child, path)
+    if found ~= nil then return found end
+  end
+  return nil
+end
+
+function Window:reveal()
+  if not api.nvim_win_is_valid(self.winnr) or self.tree == nil then return end
+
+  local file_path = api.nvim_buf_get_name(0)
+  if file_path == '' then return end
+
+  -- start from the top of the tree and keep expanding until we reach the file
+  -- then render and put the cursor on the node
+  local function expand_to_path(node, callback)
+    if not vim.startswith(file_path, node.path) then return callback(self.tree) end
+
+    node.expanded = true
+    -- really jank, relies on node still being in the new tree
+    filesystem.build_tree(self.tree, function(tree)
+      node = find_path(tree, node.path)
+      if node == nil then vim.print('Failed to find node for path: ' .. file_path) end
+
+      for _, child in ipairs(node.children) do
+        if vim.startswith(file_path, child.path) then
+          expand_to_path(child, callback)
+          return
+        end
+      end
+      callback(tree)
+    end)
+  end
+  expand_to_path(self.tree, function(tree)
+    self.tree = tree
+    vim.schedule(function()
+      self:render()
+      local node = find_path(self.tree, file_path)
+      if node ~= nil then self.renderer:select_node(node) end
+    end)
+  end)
 end
 
 function Window:open()

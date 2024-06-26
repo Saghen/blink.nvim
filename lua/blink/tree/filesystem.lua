@@ -14,6 +14,60 @@ local tree = require('blink.tree.tree')
 
 local Filesystem = {}
 
+function Filesystem.create_path(root_dir, path)
+  -- Split the path into parts
+  local parts = {}
+  for part in string.gmatch(path, '([^/]+)') do
+    table.insert(parts, part)
+  end
+
+  -- Ensure no invalid parts
+  for _, part in ipairs(parts) do
+    if part == '.' or part == '..' or part == '' then error('Invalid path: contains "." or ".." or ""') end
+  end
+
+  -- Construct the full path
+  local full_path = root_dir
+  for i, part in ipairs(parts) do
+    full_path = full_path .. '/' .. part
+    print('full_path', full_path)
+    local part_type = i == #parts and not vim.endswith(part, '/') and 'file' or 'directory'
+    local stat = vim.loop.fs_stat(full_path)
+
+    local exists = stat ~= nil and stat.type == part_type
+    if exists then
+      if part_type == 'file' then error('File already exists: ' .. full_path) end
+      goto continue
+    end
+
+    -- Create the file
+    if part_type == 'file' then
+      local fd = vim.loop.fs_open(full_path, 'w', 438) -- 438 is 0666 in octal
+      if fd then
+        vim.loop.fs_close(fd)
+      else
+        error('Failed to create file: ' .. full_path)
+      end
+    -- Create the directory
+    else
+      local success, err = pcall(vim.loop.fs_mkdir, full_path, 493) -- 493 is 0755 in octal
+      if not success then error('Failed to create directory: ' .. full_path .. ' (' .. err .. ')') end
+    end
+
+    ::continue::
+  end
+end
+
+function Filesystem.rename_path(old_path, new_path)
+  local success, err = pcall(vim.lsp.util.rename, old_path, new_path)
+  if not success then error('Failed to rename: ' .. old_path .. ' -> ' .. new_path .. ' (' .. err .. ')') end
+end
+
+function Filesystem.copy_path(old_path, new_path)
+  local success, err = pcall(vim.loop.fs_copyfile, old_path, new_path)
+  if not success then error('Failed to copy: ' .. old_path .. ' -> ' .. new_path .. ' (' .. err .. ')') end
+end
+
 function Filesystem.scan_dir(parent, callback)
   local children = {}
   if parent.is_dir == false then

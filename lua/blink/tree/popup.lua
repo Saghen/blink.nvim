@@ -20,8 +20,14 @@ function Popup:open(opts)
   opts.style = opts.style or 'minimal'
   opts.border = opts.border or 'single'
 
+  local initial_text = opts.initial_text or ''
+  opts.initial_text = nil
+
   self.bufnr = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, { initial_text })
+
   self.winnr = api.nvim_open_win(self.bufnr, true, opts)
+  api.nvim_win_set_cursor(self.winnr, { 1, #initial_text }) -- move cursor to the end
 end
 
 function Popup.new_input(opts, callback)
@@ -33,7 +39,7 @@ function Popup.new_input(opts, callback)
   self:open(opts)
 
   -- enter insert mode
-  api.nvim_feedkeys('i', 'n', true)
+  api.nvim_feedkeys('a', 'n', true)
 
   local has_run = false
   local on_submit = function()

@@ -15,6 +15,11 @@ function Renderer:render_node(line_number, node, indent)
 
   local icon_spaces = '   '
   local line = prefix .. icon_spaces .. name
+  if node.copy then
+    line = line .. ' [copy]'
+  elseif node.cut then
+    line = line .. ' [cut]'
+  end
   local line_index = line_number - 1
   api.nvim_buf_set_lines(self.bufnr, line_index, line_index + 1, false, { line })
 
@@ -99,6 +104,17 @@ function Renderer:get_hovered_node()
 
   local cursor = api.nvim_win_get_cursor(self.winnr)
   return self.nodes_by_lines[cursor[1]]
+end
+
+function Renderer:select_node(node)
+  if self.nodes_by_lines == nil then return end
+
+  for line_number, n in pairs(self.nodes_by_lines) do
+    if n == node then
+      api.nvim_win_set_cursor(self.winnr, { line_number, 0 })
+      return
+    end
+  end
 end
 
 return Renderer

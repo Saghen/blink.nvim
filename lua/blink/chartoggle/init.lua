@@ -1,10 +1,12 @@
 local M = {}
 
+function M.setup(opts) require('blink.chartoggle.config').setup(opts) end
+
 -- implementation from https://github.com/saifulapm/chartoggle.nvim
 -- todo: make a blink plugin with config, delimiters per language, filetype blocklist
 function M.toggle_char_eol(character)
   local api = vim.api
-  local delimiters = { ',', ';' }
+  local delimiters = require('blink.chartoggle.config').delimiters
 
   local mode = api.nvim_get_mode().mode
   local is_visual = mode == 'v' or mode == 'V' or mode == '\22' -- <C-v>

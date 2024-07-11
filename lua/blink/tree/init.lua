@@ -2,29 +2,32 @@
 local api = vim.api
 local M = {}
 
-function M.setup()
+function M.setup(opts)
+  require('blink.tree.config').setup(opts)
+
   M.setup_highlights()
 
-  local instance = require('blink.tree.window').new()
-
+  local inst
   vim.api.nvim_create_user_command('BlinkTree', function(args)
+    if inst == nil then inst = require('blink.tree.window').new() end
+
     local arg = args.args
     arg = arg or 'toggle'
 
     if arg == 'toggle' then
-      instance:toggle()
+      inst:toggle()
     elseif arg == 'open' then
-      instance:open()
+      inst:open()
     elseif arg == 'close' then
-      instance:close()
+      inst:close()
     elseif arg == 'toggle-focus' then
-      instance:toggle_focus()
+      inst:toggle_focus()
     elseif arg == 'focus' then
-      instance:focus()
+      inst:focus()
     elseif arg == 'update' then
-      instance:update()
+      inst:update()
     elseif arg == 'reveal' then
-      instance:reveal()
+      inst:reveal()
     end
   end, { nargs = 1 })
 end

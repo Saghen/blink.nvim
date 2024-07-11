@@ -1,9 +1,9 @@
 #![feature(test)]
 
 pub mod extern_ffi {
-    use nucleo::{ Matcher, Config, Utf32Str, Utf32String };
-    use nucleo::pattern::{ MultiPattern, CaseMatching, Normalization };
     use lua_marshalling::LuaMarshalling;
+    use nucleo::pattern::{CaseMatching, MultiPattern, Normalization};
+    use nucleo::{Config, Matcher, Utf32Str, Utf32String};
 
     struct Item {
         index: u32,
@@ -18,18 +18,31 @@ pub mod extern_ffi {
 
         let mut pattern = MultiPattern::new(1);
         // update the pattern with the prompt
-        pattern.reparse(0, &prompt, CaseMatching::Smart, Normalization::Smart, false);
+        pattern.reparse(
+            0,
+            &prompt,
+            CaseMatching::Ignore,
+            Normalization::Smart,
+            false,
+        );
 
         let mut scores: Vec<Item> = vec![];
         for (idx, item) in items.iter().enumerate() {
             let item: Utf32String = item.as_str().into();
             let score = pattern.score(&[item], &mut matcher);
-            scores.push(Item { index: idx as u32, score: score.unwrap_or(0) });
+            scores.push(Item {
+                index: idx as u32,
+                score: score.unwrap_or(0),
+            });
         }
 
         scores.sort_by(|a, b| b.score.cmp(&a.score));
 
-        scores.iter().filter(|item| item.score > 0).map(|item| item.index).collect::<Vec<_>>()
+        scores
+            .iter()
+            .filter(|item| item.score > 0)
+            .map(|item| item.index)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -44,7 +57,11 @@ mod tests {
     #[test]
     fn test_fuzzy() {
         let prompt = "e".to_string();
-        let items = vec!["enable24".to_string(), "asd".to_string(), "wowowowe".to_string()];
+        let items = vec![
+            "enable24".to_string(),
+            "asd".to_string(),
+            "wowowowe".to_string(),
+        ];
         let indices = extern_ffi::fuzzy(prompt, items);
         assert_eq!(indices, vec![0, 2]);
     }

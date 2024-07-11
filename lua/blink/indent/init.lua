@@ -26,9 +26,10 @@ M.setup = function(config)
         scope_range[1],
         scope_range[2],
         range.start_line,
-        range.end_line
+        range.end_line,
+        range.horizontal_offset
       )
-      static.partial_draw(ns, indent_levels, range.bufnr, range.start_line, range.end_line)
+      static.partial_draw(ns, indent_levels, range.bufnr, range.start_line, range.end_line, range.horizontal_offset)
     end,
   })
 end

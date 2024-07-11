@@ -2,7 +2,7 @@ local M = {}
 
 Utils = require('blink.indent.utils')
 
-M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line)
+M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line, left_offset)
   local shiftwidth = Utils.get_shiftwidth(bufnr)
   local symbol = '▎' .. string.rep(' ', shiftwidth - 1)
 
@@ -22,13 +22,19 @@ M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line)
     -- draw
     if indent_level > 0 then
       local virt_text = string.rep(symbol, indent_level)
+
+      local success, symbol_offset_index = pcall(vim.str_byteindex, symbol, left_offset)
+      if not success then goto continue end
+      virt_text = virt_text:sub(symbol_offset_index + 1)
       vim.api.nvim_buf_set_extmark(bufnr, ns, line_number - 1, 0, {
-        virt_text = { { virt_text, 'IblIndent' } },
+        virt_text = { { virt_text, 'BlinkIndent' } },
         virt_text_pos = 'overlay',
         hl_mode = 'combine',
         priority = 1,
       })
     end
+
+    ::continue::
   end
 end
 

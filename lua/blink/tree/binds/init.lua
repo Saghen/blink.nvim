@@ -10,7 +10,7 @@ function Binds.attach_to_instance(inst)
   end
 
   map('n', 'q', function() inst:close() end)
-  map('n', 'R', function() inst.tree:update() end)
+  map('n', 'R', function() inst.tree:refresh() end)
 
   local activate = require('blink.tree.binds.activate')
   map('n', '<CR>', activate)

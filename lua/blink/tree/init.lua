@@ -24,8 +24,8 @@ function M.setup(opts)
       inst:toggle_focus()
     elseif arg == 'focus' then
       inst:focus()
-    elseif arg == 'update' then
-      inst:update()
+    elseif arg == 'refresh' then
+      inst:refresh()
     elseif arg == 'reveal' then
       inst:reveal()
     end

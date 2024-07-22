@@ -46,6 +46,9 @@ function Renderer.new(bufnr)
   self.once_after_render_callbacks = {}
   self.nodes_by_lines = nil
   self.bufnr = bufnr
+  -- hack: the once_after_render callback depends on this for some behavior like reveal
+  -- since without a debounce, there would be multiple renders before the node is visible
+  self.render_window = require('blink.tree.lib.utils').debounce(self.render_window, 4)
 
   local modified = {}
 

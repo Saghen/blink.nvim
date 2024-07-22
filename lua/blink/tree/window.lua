@@ -113,6 +113,10 @@ function Window.new()
   return self
 end
 
+function Window:refresh()
+  -- todo:
+end
+
 function Window:ensure_buffer()
   -- TODO: should check if buffer is valid and cleanup previous
   if api.nvim_buf_is_valid(self.bufnr) then return end
@@ -200,6 +204,14 @@ function Window:is_open()
   return api.nvim_win_is_valid(self.winnr)
     and api.nvim_win_get_buf(self.winnr) == self.bufnr
     and api.nvim_buf_is_valid(self.bufnr)
+end
+
+function Window:reveal()
+  local current_buf_path = vim.fn.expand(vim.api.nvim_buf_get_name(0))
+  if current_buf_path == '' then return end
+
+  self.tree:expand_path(current_buf_path)
+  self.renderer:once_after_render(function() self.renderer:select_path(current_buf_path) end)
 end
 
 return Window

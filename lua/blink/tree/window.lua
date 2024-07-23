@@ -208,6 +208,8 @@ function Window:is_open()
 end
 
 function Window:reveal()
+  if not self:is_open() then self:open() end
+
   local current_buf_path = vim.fn.expand(vim.api.nvim_buf_get_name(0))
   if current_buf_path == '' then return end
 

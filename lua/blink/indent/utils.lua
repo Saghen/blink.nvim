@@ -13,7 +13,7 @@ local blocked_filetypes = {
   [''] = true,
 }
 local blocked_buftypes = { terminal = true, quickfix = true, nofile = true, prompt = true }
-local rainbow_hl_groups = { 'RainbowOrange', 'RainbowPurple', 'RainbowBlue' }
+local rainbow_hl_groups = { 'RainbowCyan', 'RainbowYellow', 'RainbowOrange', 'RainbowGreen' }
 local rainbow_underline_hl_groups = { 'RainbowOrangeUnderline', 'RainbowPurpleUnderline', 'RainbowBlueUnderline' }
 
 function M.get_shiftwidth(bufnr)
@@ -44,7 +44,7 @@ function M.get_line(bufnr, line_idx) return vim.api.nvim_buf_get_lines(bufnr, li
 
 function M.get_rainbow_hl(idx, underline)
   local hl_groups = underline and rainbow_underline_hl_groups or rainbow_hl_groups
-  return hl_groups[(math.floor(idx) - 1) % #hl_groups + 1]
+  return hl_groups[(math.floor(idx)) % #hl_groups + 1]
 end
 
 M.is_buf_blocked = function(buf)

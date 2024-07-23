@@ -173,6 +173,7 @@ function Window:close()
 
   -- otherwise close the window
   api.nvim_win_close(self.winnr, true)
+  api.nvim_buf_delete(self.bufnr, { force = true })
   self.winnr = -1
 end
 

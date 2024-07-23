@@ -13,8 +13,10 @@ function Binds.attach_to_instance(inst)
   map('n', 'R', function() inst.tree:refresh() end)
 
   local activate = require('blink.tree.binds.activate')
+  local expand = require('blink.tree.binds.expand')
   map('n', '<CR>', activate)
   map('n', '<2-LeftMouse>', activate)
+  map('n', '<Tab>', expand)
 
   local basic = require('blink.tree.binds.basic')
   map('n', 'a', basic.new_file)

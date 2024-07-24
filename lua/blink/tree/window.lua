@@ -10,6 +10,16 @@ function Window.new()
 
   self.augroup = api.nvim_create_augroup('BlinkTreeWindow', { clear = true })
 
+  api.nvim_create_autocmd('VimLeavePre', {
+    group = self.augroup,
+    callback = function()
+			if self.tree ~= nil then
+				self.tree:destroy()
+				self.tree = nil
+			end
+    end,
+  })
+
   api.nvim_create_autocmd('WinEnter', {
     group = self.augroup,
     callback = function()

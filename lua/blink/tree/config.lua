@@ -1,6 +1,19 @@
 local M = {}
 
-M.default = {}
+M.default = {
+	hidden_by_default = true,
+	hide_dotfiles = false,
+	hide = {
+		'.github',
+		'.direnv',
+		'.devenv'
+	},
+	never_show = {
+		'.git',
+		'.cache',
+		'node_modules'
+	},
+}
 
 function M.setup(opts)
   opts = vim.tbl_deep_extend('force', M.default, opts or {})

@@ -1,7 +1,8 @@
+local allConfig = require('blink.tree.config')
 local config = {
-  hide_dotfiles = true,
-  hide = { ['node_modules'] = true, ['.git'] = true, ['.cache'] = true },
-  never_show = { ['.git'] = true, ['node_modules'] = true },
+  hide_dotfiles = allConfig.hide_dotfiles,
+  hide = allConfig.hide,
+  never_show = allConfig.never_show,
 }
 
 local Tree = {}
@@ -110,7 +111,10 @@ function Tree.make_children(parent, entries)
   for _, entry in ipairs(entries) do
     local path = parent.path .. '/' .. entry.name
     local node = Tree.make_node(parent, path, entry.name, entry.type == 'directory')
-    if config.never_show[node.filename] == nil then table.insert(children, node) end
+    -- TODO: move to renderer, differentiate between hidden and never_show
+    local should_show = (not vim.tbl_contains(config.hide, node.filename))
+      and (not vim.tbl_contains(config.never_show, node.filename))
+    if should_show then table.insert(children, node) end
   end
 
   -- sort by name (insensitive) and then by type (dir first)

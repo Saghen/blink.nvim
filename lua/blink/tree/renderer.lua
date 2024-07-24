@@ -118,7 +118,7 @@ function Renderer.new(bufnr)
       if repo ~= nil then
         local status = repo:get_status(node.path)
         if status ~= nil then
-          local hl = repo.get_hl_for_status(status)
+          local hl = repo.get_hl_for_status(status, node.is_dir)
           if hl ~= nil then
             api.nvim_buf_set_extmark(bufnr, ns, line_number, 0, {
               end_col = render_state.length,

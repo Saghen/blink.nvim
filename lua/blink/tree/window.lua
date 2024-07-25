@@ -13,10 +13,10 @@ function Window.new()
   api.nvim_create_autocmd('VimLeavePre', {
     group = self.augroup,
     callback = function()
-			if self.tree ~= nil then
-				self.tree:destroy()
-				self.tree = nil
-			end
+      if self.tree ~= nil then
+        self.tree:destroy()
+        self.tree = nil
+      end
     end,
   })
 
@@ -145,13 +145,7 @@ end
 
 function Window:render()
   vim.schedule(function()
-    if
-      not api.nvim_win_is_valid(self.winnr)
-      or not api.nvim_buf_is_valid(self.bufnr)
-      or not api.nvim_win_get_buf(self.winnr) == self.bufnr
-    then
-      return
-    end
+    if not self:is_open() then return end
     self.nodes_by_line = self.renderer:render_window(self.winnr, self.tree.root)
   end)
 end
@@ -166,7 +160,9 @@ function Window:open(silent)
     split = 'left',
     width = 40,
   })
-  -- HACK: why do I need to manually trigger this?
+
+  -- HACK: we manually trigger this because neovim-session disable autocmds
+  -- during startup
   local prev_win = vim.api.nvim_get_current_win()
   if silent then vim.api.nvim_set_current_win(self.winnr) end
   vim.cmd('do BufEnter')
@@ -182,6 +178,7 @@ function Window:close()
   if api.nvim_tabpage_list_wins(0)[1] == self.winnr and #api.nvim_list_wins() == 1 then return vim.cmd('enew') end
 
   -- otherwise close the window
+  -- todo: destroy renderer?
   api.nvim_win_close(self.winnr, true)
   api.nvim_buf_delete(self.bufnr, { force = true })
   self.winnr = -1
@@ -217,14 +214,16 @@ function Window:is_open()
     and api.nvim_buf_is_valid(self.bufnr)
 end
 
-function Window:reveal()
-  if not self:is_open() then self:open() end
+function Window:reveal(silent)
+  if not self:is_open() then self:open(silent) end
 
   local current_buf_path = vim.fn.expand(vim.api.nvim_buf_get_name(0))
   if current_buf_path == '' then return end
 
   self.tree:expand_path(current_buf_path)
   self.renderer:once_after_render(function() self.renderer:select_path(current_buf_path) end)
+
+  if not silent then self:focus() end
 end
 
 return Window

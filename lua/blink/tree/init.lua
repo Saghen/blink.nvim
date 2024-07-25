@@ -8,28 +8,29 @@ function M.setup(opts)
   M.setup_highlights()
 
   local inst
-  vim.api.nvim_create_user_command('BlinkTree', function(args)
+  vim.api.nvim_create_user_command('BlinkTree', function(info)
     if inst == nil then inst = require('blink.tree.window').new() end
 
-    local arg = args.args
-    arg = arg or 'toggle'
+    local args = vim.split(info.args, ' ')
+    local command = args[1] or 'toggle'
+    local silent = args[2] == 'silent'
 
-    if arg == 'toggle' then
+    if command == 'toggle' then
       inst:toggle()
-    elseif arg == 'open' then
-      inst:open()
-    elseif arg == 'close' then
+    elseif command == 'open' then
+      inst:open(silent)
+    elseif command == 'close' then
       inst:close()
-    elseif arg == 'toggle-focus' then
+    elseif command == 'toggle-focus' then
       inst:toggle_focus()
-    elseif arg == 'focus' then
+    elseif command == 'focus' then
       inst:focus()
-    elseif arg == 'refresh' then
+    elseif command == 'refresh' then
       inst:refresh()
-    elseif arg == 'reveal' then
-      inst:reveal()
+    elseif command == 'reveal' then
+      inst:reveal(silent)
     end
-  end, { nargs = 1 })
+  end, { nargs = '*' })
 end
 
 function M.setup_highlights()

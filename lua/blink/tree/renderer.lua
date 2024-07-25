@@ -115,7 +115,7 @@ function Renderer.new(bufnr)
 
       -- Git Status
       local repo = lib_tree.get_repo(node)
-      if repo ~= nil then
+      if repo ~= nil and line_number > 0 then
         local status = repo:get_status(node.path)
         if status ~= nil then
           local hl = repo.get_hl_for_status(status, node.is_dir)

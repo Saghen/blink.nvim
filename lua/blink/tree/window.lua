@@ -163,10 +163,14 @@ function Window:open(silent)
 
   -- HACK: we manually trigger this because neovim-session disable autocmds
   -- during startup
+  -- todo: only force the autocmds if autocmds are disabled
   local prev_win = vim.api.nvim_get_current_win()
   if silent then vim.api.nvim_set_current_win(self.winnr) end
   vim.cmd('do BufEnter')
-  if silent then vim.api.nvim_set_current_win(prev_win) end
+  if silent then
+    vim.cmd('do BufLeave')
+    vim.api.nvim_set_current_win(prev_win)
+  end
 
   self:render()
 end

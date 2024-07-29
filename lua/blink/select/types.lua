@@ -1,0 +1,17 @@
+--- @class RenderFragment
+--- @field [1] string
+--- @field highlight? string
+---
+--- @class SelectItem
+--- @field fragments (RenderFragment | string)[]
+--- @field data any
+---
+--- @class GetItemsResponse
+--- @field next_page fun(): fun(): SelectItem[]
+--- @field page_count number | nil
+---
+--- @class SelectProvider
+--- @field name string Human-readable name of the provider
+--- @field get_items fun(page_size: number, bufnr: number): GetItemsResponse
+--- @field select fun(item: SelectItem): any
+--- @field alt_select? fun(item: SelectItem): any

@@ -11,6 +11,9 @@ M.default = {
   indent = {
     enabled = false,
   },
+  select = {
+    enabled = false,
+  },
   tree = {
     enabled = false,
   },

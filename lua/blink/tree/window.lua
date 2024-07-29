@@ -168,8 +168,10 @@ function Window:open(silent)
   if silent then vim.api.nvim_set_current_win(self.winnr) end
   vim.cmd('do BufEnter')
   if silent then
-    vim.cmd('do BufLeave')
-    vim.api.nvim_set_current_win(prev_win)
+    vim.schedule(function()
+      vim.cmd('do BufLeave')
+      vim.api.nvim_set_current_win(prev_win)
+    end)
   end
 
   self:render()

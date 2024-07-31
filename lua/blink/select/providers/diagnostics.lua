@@ -3,23 +3,20 @@ local diagnostics = {
   name = 'Diagnostics',
 }
 
-function diagnostics.get_items(page_size, bufnr)
+function diagnostics.get_items(opts, cb)
   local idx = 1
   local items = {}
-  local all_diagnostics = vim.diagnostic.get(bufnr, { severity = { min = vim.diagnostic.severity.HINT } })
+  local all_diagnostics = vim.diagnostic.get(opts.bufnr, { severity = { min = vim.diagnostic.severity.HINT } })
   -- sort by line number
   table.sort(all_diagnostics, function(a, b) return a.lnum < b.lnum end)
 
-  return {
-    page_count = math.ceil(#all_diagnostics / page_size),
-    next_page = function()
-      while idx <= #all_diagnostics and #items < page_size do
+  cb({
+    page_count = math.ceil(#all_diagnostics / opts.page_size),
+    next_page = function(page_cb)
+      while idx <= #all_diagnostics and #items < opts.page_size do
         local diag = all_diagnostics[idx]
         local bufnr = diag.bufnr
         if bufnr == nil then break end
-
-        local buf_path = vim.api.nvim_buf_get_name(bufnr)
-        local filename = vim.fn.fnamemodify(buf_path, ':t')
 
         -- Get the diagnostic symbol
         local symbol = '●'
@@ -60,9 +57,9 @@ function diagnostics.get_items(page_size, bufnr)
         idx = idx + 1
       end
 
-      return items
+      page_cb(items)
     end,
-  }
+  })
 end
 
 function diagnostics.select(item)

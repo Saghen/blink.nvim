@@ -1,3 +1,5 @@
+--- NOTE: This is just mini.clue with support for backspace
+---
 --- *mini.clue* Show next key clues
 --- *MiniClue*
 ---

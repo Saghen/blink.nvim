@@ -81,9 +81,7 @@ function window.get_buf()
   window.bufnr = api.nvim_create_buf(false, true)
   api.nvim_set_option_value('buftype', 'nofile', { buf = window.bufnr })
   api.nvim_set_option_value('filetype', 'blink-select', { buf = window.bufnr })
-  api.nvim_set_option_value('bufhidden', 'wipe', { buf = window.bufnr })
   api.nvim_set_option_value('swapfile', false, { buf = window.bufnr })
-  api.nvim_set_option_value('buflisted', false, { buf = window.bufnr })
   api.nvim_set_option_value('modifiable', false, { buf = window.bufnr })
 
   window.setup_mapping(window.bufnr)
@@ -215,7 +213,7 @@ function window.render(items)
   api.nvim_set_option_value('modifiable', false, { buf = window.bufnr })
 end
 
-function window.close() api.nvim_win_close(0, true) end
+function window.close() api.nvim_win_close(0, false) end
 
 function window.select(idx)
   window.close()

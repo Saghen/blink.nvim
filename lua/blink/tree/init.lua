@@ -1,37 +1,49 @@
 -- todo: symlinks
 local api = vim.api
-local M = {}
+local M = {
+  inst = nil,
+}
 
 function M.setup(opts)
   require('blink.tree.config').setup(opts)
 
   M.setup_highlights()
 
-  local inst
   vim.api.nvim_create_user_command('BlinkTree', function(info)
-    if inst == nil then inst = require('blink.tree.window').new() end
-
     local args = vim.split(info.args, ' ')
     local command = args[1] or 'toggle'
     local silent = args[2] == 'silent'
 
     if command == 'toggle' then
-      inst:toggle()
+      M.toggle()
     elseif command == 'open' then
-      inst:open(silent)
+      M.open(silent)
     elseif command == 'close' then
-      inst:close()
+      M.close()
     elseif command == 'toggle-focus' then
-      inst:toggle_focus()
+      M.toggle_focus()
     elseif command == 'focus' then
-      inst:focus()
+      M.focus()
     elseif command == 'refresh' then
-      inst:refresh()
+      M.refresh()
     elseif command == 'reveal' then
-      inst:reveal(silent)
+      M.reveal(silent)
     end
   end, { nargs = '*' })
 end
+
+function M.get_inst()
+  if M.inst == nil then M.inst = require('blink.tree.window').new() end
+  return M.inst
+end
+
+function M.toggle() M.get_inst():toggle() end
+function M.open(silent) M.get_inst():open(silent) end
+function M.close() M.get_inst():close() end
+function M.toggle_focus() M.get_inst():toggle_focus() end
+function M.focus() M.get_inst():focus() end
+function M.refresh() M.get_inst():refresh() end
+function M.reveal(silent) M.get_inst():reveal(silent) end
 
 function M.setup_highlights()
   api.nvim_set_hl(0, 'BlinkTreeNormal', { link = 'Normal', default = true })

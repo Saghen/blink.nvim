@@ -6,12 +6,18 @@
 --- @field fragments (RenderFragment | string)[]
 --- @field data any
 ---
+--- @class GetItemsOptions
+--- @field winnr number
+--- @field bufnr number
+--- @field alternate_bufnr number
+--- @field page_size number
+---
 --- @class GetItemsResponse
---- @field next_page fun(): fun(): SelectItem[]
+--- @field next_page fun(cb: fun(items: SelectItem[])): nil
 --- @field page_count number | nil
 ---
 --- @class SelectProvider
---- @field name string Human-readable name of the provider
---- @field get_items fun(page_size: number, bufnr: number): GetItemsResponse
+--- @field name string Human readable name of the provider
+--- @field get_items fun(opts: GetItemsOptions, cb: fun(response: GetItemsResponse)): nil
 --- @field select fun(item: SelectItem): any
 --- @field alt_select? fun(item: SelectItem): any

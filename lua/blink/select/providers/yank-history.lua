@@ -1,5 +1,7 @@
 --- @class SelectProvider
-local yank_history = {}
+local yank_history = {
+  name = 'Yank History',
+}
 
 -- Initialize yank history table
 local history = {}
@@ -30,43 +32,49 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
-function yank_history.get_items(page_size)
+function yank_history.get_items(opts, cb)
   local idx = 1
 
-  return function()
-    local items = {}
-    while idx <= #history and #items < page_size do
-      local item = history[idx]
-      local text = item.text:gsub('[\n\r]', ' ') -- Replace newlines with spaces
-      local truncated_text = #text > 50 and text:sub(1, 47) .. '...' or text
+  cb({
+    page_count = math.ceil(#history / opts.page_size),
+    next_page = function(page_cb)
+      local items = {}
+      while idx <= #history and #items < opts.page_size do
+        local item = history[idx]
+        local text = item.text:gsub('[\n\r]', ' ') -- Replace newlines with spaces
+        local truncated_text = #text > 50 and text:sub(1, 47) .. '...' or text
 
-      local time_diff = os.difftime(os.time(), item.timestamp)
-      local time_str = time_diff < 60 and 'just now'
-        or time_diff < 3600 and string.format('%d min ago', math.floor(time_diff / 60))
-        or time_diff < 86400 and string.format('%d hours ago', math.floor(time_diff / 3600))
-        or string.format('%d days ago', math.floor(time_diff / 86400))
+        local time_diff = os.difftime(os.time(), item.timestamp)
+        local time_str = time_diff < 60 and 'just now'
+          or time_diff < 3600 and string.format('%d min ago', math.floor(time_diff / 60))
+          or time_diff < 86400 and string.format('%d hours ago', math.floor(time_diff / 3600))
+          or string.format('%d days ago', math.floor(time_diff / 86400))
 
-      table.insert(items, {
-        data = { text = item.text },
-        fragments = {
-          { truncated_text, highlight = 'Normal' },
-          ' ',
-          { time_str, highlight = 'Comment' },
-        },
-      })
+        table.insert(items, {
+          data = { text = item.text },
+          fragments = {
+            { truncated_text, highlight = 'Normal' },
+            ' ',
+            { time_str, highlight = 'Comment' },
+          },
+        })
 
-      idx = idx + 1
-    end
+        idx = idx + 1
+      end
 
-    return items
-  end
+      page_cb(items)
+    end,
+  })
 end
 
 function yank_history.select(item)
   vim.fn.setreg('"', item.data.text)
-  vim.api.nvim_put({ item.data.text }, '', false, true)
+  vim.api.nvim_put(vim.split(item.data.text, '\n'), '', true, true)
 end
 
-function yank_history.alt_select(item) vim.fn.setreg('"', item.data.text) end
+function yank_history.alt_select(item)
+  vim.fn.setreg('"', item.data.text)
+  vim.api.nvim_put(vim.split(item.data.text, '\n'), '', false, true)
+end
 
 return yank_history

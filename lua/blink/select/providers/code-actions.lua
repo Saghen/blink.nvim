@@ -1,47 +1,55 @@
 --- @class SelectProvider
-local code_actions = {}
+local code_actions = {
+  name = 'Code Actions',
+}
 
-function code_actions.get_items(page_size)
+function code_actions.get_items(opts, cb)
   local idx = 1
   local actions = {}
 
   -- Get available code actions
-  vim.lsp.buf_request_sync(0, 'textDocument/codeAction', vim.lsp.util.make_range_params(), 1000)
-  local result =
-    vim.lsp.buf_get_clients()[1].request_sync('textDocument/codeAction', vim.lsp.util.make_range_params(), 1000, 0)
-  if result and result.result then actions = result.result end
-
-  return function()
-    local items = {}
-    while idx <= #actions and #items < page_size do
-      local action = actions[idx]
-
-      -- Action title
-      local title_component = { action.title, highlight = 'Function' }
-
-      -- Action kind (if available)
-      local kind_component = ''
-      if action.kind then kind_component = { ' [' .. action.kind .. ']', highlight = 'Comment' } end
-
-      -- Action source (if available)
-      local source_component = ''
-      if action.source then source_component = { ' from ' .. action.source, highlight = 'Comment' } end
-
-      table.insert(items, {
-        data = action,
-        fragments = {
-          '  ',
-          title_component,
-          kind_component,
-          source_component,
-        },
-      })
-
-      idx = idx + 1
-    end
-
-    return items
+  local results = vim.lsp.buf_request_sync(0, 'textDocument/codeAction', vim.lsp.util.make_range_params(), 1000)
+  for _, result in pairs(results or {}) do
+    if result and result.result then vim.tbl_extend('force', actions, result.result) end
   end
+
+  cb({
+    page_count = math.ceil(#actions / opts.page_size),
+    next_page = function(page_cb)
+      --- @type RenderFragment[]
+      local items = {}
+      while idx <= #actions and #items < opts.page_size do
+        local action = actions[idx]
+
+        -- Action title
+        local title_component = { action.title, highlight = 'Function' }
+
+        -- Action kind (if available)
+        --- @type string | RenderFragment
+        local kind_component = ''
+        if action.kind then kind_component = { ' [' .. action.kind .. ']', highlight = 'Comment' } end
+
+        -- Action source (if available)
+        --- @type string | RenderFragment
+        local source_component = ''
+        if action.source then source_component = { ' from ' .. action.source, highlight = 'Comment' } end
+
+        table.insert(items, {
+          data = action,
+          fragments = {
+            '  ',
+            title_component,
+            kind_component,
+            source_component,
+          },
+        })
+
+        idx = idx + 1
+      end
+
+      page_cb(items)
+    end,
+  })
 end
 
 function code_actions.select(item)

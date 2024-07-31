@@ -17,8 +17,8 @@ local config = {
   mapping = {
     selection = { 'h', 'j', 'k', 'l', 'a', 's', 'd', 'f' },
     -- remember selection also uses the capital variants so dont interfere
-    next_page = { '<C-h>' },
-    prev_page = { '<C-l>' },
+    prev_page = { '<C-h>' },
+    next_page = { '<C-l>' },
     quit = { 'q', '<Esc>' },
   },
   window = {
@@ -26,9 +26,10 @@ local config = {
     max_width = { 120, 0.8 }, -- lesser of 120 columns and 80% of current window width
     border = 'rounded',
     wrap = false,
+    group_size = 4,
   },
 }
 
 function config.setup(opts) config = vim.tbl_deep_extend('force', config, opts or {}) end
 
-return config
+return setmetatable({}, { __index = function(_, k) return config[k] end })

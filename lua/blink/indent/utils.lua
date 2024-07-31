@@ -38,10 +38,7 @@ end
 
 function M.get_line(bufnr, line_idx) return vim.api.nvim_buf_get_lines(bufnr, line_idx - 1, line_idx, false)[1] end
 
-function M.get_rainbow_hl(idx, underline)
-  local hl_groups = underline and config.highlights.underline_groups or config.highlights.groups
-  return hl_groups[(math.floor(idx)) % #hl_groups + 1]
-end
+function M.get_rainbow_hl(idx, hl_groups) return hl_groups[(math.floor(idx)) % #hl_groups + 1] end
 
 M.is_buf_blocked = function(buf)
   local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })

@@ -5,7 +5,7 @@ local utils = require('blink.indent.utils')
 
 M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line, left_offset)
   local shiftwidth = utils.get_shiftwidth(bufnr)
-  local symbol = '▎' .. string.rep(' ', shiftwidth - 1)
+  local symbol = config.static.char .. string.rep(' ', shiftwidth - 1)
 
   -- add the new indents
   local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
@@ -27,11 +27,12 @@ M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line, left_of
       local success, symbol_offset_index = pcall(vim.str_byteindex, symbol, left_offset)
       if not success then goto continue end
       virt_text = virt_text:sub(symbol_offset_index + 1)
+      local hl_group = utils.get_rainbow_hl(indent_level, config.static.highlights)
       vim.api.nvim_buf_set_extmark(bufnr, ns, line_number - 1, 0, {
-        virt_text = { { virt_text, config.highlights.static_group } },
+        virt_text = { { virt_text, hl_group } },
         virt_text_pos = 'overlay',
         hl_mode = 'combine',
-        priority = 1,
+        priority = config.static.priority,
         ephemeral = true,
       })
     end

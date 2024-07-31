@@ -12,6 +12,7 @@ M.setup = function(config)
 
   vim.api.nvim_set_decoration_provider(ns, {
     on_win = function(_, winnr, bufnr)
+      vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
       if utils.is_buf_blocked(bufnr) then return end
 
       local range = utils.get_win_scroll_range(winnr)
@@ -93,6 +94,8 @@ M.get_indent_levels = function(winnr, bufnr, start_line, end_line)
 end
 
 M.setup_hl_groups = function()
+  vim.api.nvim_set_hl(0, 'BlinkIndent', { default = true, link = 'Whitespace' })
+
   local function set_hl(color, fg)
     vim.api.nvim_set_hl(0, 'BlinkIndent' .. color, { default = true, fg = fg, ctermfg = color:match('Indent(%w+)') })
     vim.api.nvim_set_hl(0, 'BlinkIndent' .. color .. 'Underline', { default = true, sp = fg, underline = true })

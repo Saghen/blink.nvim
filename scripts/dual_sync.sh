@@ -1,3 +1,6 @@
+# Written by echasnovski in mini.nvim
+# https://github.com/echasnovski/mini.nvim/blob/82584a42c636efd11781211da1396f4c1f5e7877/scripts/dual_sync.sh
+
 # Perform local sync of standalone repositories
 repos_dir=dual/repos
 patches_dir=dual/patches

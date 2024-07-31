@@ -1,3 +1,6 @@
+# Written by echasnovski in mini.nvim
+# https://github.com/echasnovski/mini.nvim/blob/82584a42c636efd11781211da1396f4c1f5e7877/scripts/dual_push.sh
+
 # Push standalone repos result
 local_repos="$( ls -d dual/repos/*/ )"
 

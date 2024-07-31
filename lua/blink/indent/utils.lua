@@ -1,27 +1,23 @@
 local M = {}
 
-local blocked_filetypes = {
-  lspinfo = true,
-  packer = true,
-  checkhealth = true,
-  help = true,
-  man = true,
-  gitcommit = true,
-  TelescopePrompt = true,
-  TelescopeResults = true,
-  dashboard = true,
-  [''] = true,
-}
-local blocked_buftypes = { terminal = true, quickfix = true, nofile = true, prompt = true }
-local rainbow_hl_groups = { 'RainbowCyan', 'RainbowYellow', 'RainbowOrange', 'RainbowGreen' }
-local rainbow_underline_hl_groups = { 'RainbowOrangeUnderline', 'RainbowPurpleUnderline', 'RainbowBlueUnderline' }
+local config = require('blink.indent.config')
+
+local blocked_filetypes = {}
+for _, ft in ipairs(config.blocked.filetypes) do
+  blocked_filetypes[ft] = true
+end
+
+local blocked_buftypes = {}
+for _, buftype in ipairs(config.blocked.buftypes) do
+  blocked_buftypes[buftype] = true
+end
 
 function M.get_shiftwidth(bufnr)
-  local shiftwidth = vim.api.nvim_buf_get_option(bufnr, 'shiftwidth')
+  local shiftwidth = vim.api.nvim_get_option_value('shiftwidth', { buf = bufnr })
   -- todo: is this correct?
-  if shiftwidth == 0 then shiftwidth = vim.api.nvim_buf_get_option(bufnr, 'tabstop') end
-  -- should this default to 2 if shiftwidth == 0?
-  return math.max(shiftwidth, 1)
+  if shiftwidth == 0 then shiftwidth = vim.api.nvim_get_option_value('tabstop', { buf = bufnr }) end
+  -- default to 2 if shiftwidth and tabwidth are 0
+  return math.max(shiftwidth, 2)
 end
 
 function M.get_line_indent_level(bufnr, line_number, shiftwidth)
@@ -43,15 +39,15 @@ end
 function M.get_line(bufnr, line_idx) return vim.api.nvim_buf_get_lines(bufnr, line_idx - 1, line_idx, false)[1] end
 
 function M.get_rainbow_hl(idx, underline)
-  local hl_groups = underline and rainbow_underline_hl_groups or rainbow_hl_groups
+  local hl_groups = underline and config.highlights.underline_groups or config.highlights.groups
   return hl_groups[(math.floor(idx)) % #hl_groups + 1]
 end
 
 M.is_buf_blocked = function(buf)
-  local filetype = vim.api.nvim_buf_get_option(buf, 'filetype')
+  local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
   local is_blocked_filetype = blocked_filetypes[filetype] ~= nil
 
-  local buftype = vim.api.nvim_buf_get_option(buf, 'buftype')
+  local buftype = vim.api.nvim_get_option_value('buftype', { buf = buf })
   local is_blocked_buftype = blocked_buftypes[buftype] ~= nil
 
   return is_blocked_filetype or is_blocked_buftype

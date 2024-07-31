@@ -1,9 +1,10 @@
 local M = {}
 
-Utils = require('blink.indent.utils')
+local config = require('blink.indent.config')
+local utils = require('blink.indent.utils')
 
 M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line, left_offset)
-  local shiftwidth = Utils.get_shiftwidth(bufnr)
+  local shiftwidth = utils.get_shiftwidth(bufnr)
   local symbol = '▎' .. string.rep(' ', shiftwidth - 1)
 
   -- add the new indents
@@ -27,10 +28,11 @@ M.partial_draw = function(ns, line_indents, bufnr, start_line, end_line, left_of
       if not success then goto continue end
       virt_text = virt_text:sub(symbol_offset_index + 1)
       vim.api.nvim_buf_set_extmark(bufnr, ns, line_number - 1, 0, {
-        virt_text = { { virt_text, 'BlinkIndent' } },
+        virt_text = { { virt_text, config.highlights.static_group } },
         virt_text_pos = 'overlay',
         hl_mode = 'combine',
         priority = 1,
+        ephemeral = true,
       })
     end
 

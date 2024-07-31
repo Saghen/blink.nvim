@@ -1,9 +1,9 @@
 local M = {}
 
-Utils = require('blink.indent.utils')
+local utils = require('blink.indent.utils')
 
 M.partial_draw = function(ns, indent_levels, bufnr, start_line, end_line, min_start_line, max_end_line, left_offset)
-  local shiftwidth = Utils.get_shiftwidth(bufnr)
+  local shiftwidth = utils.get_shiftwidth(bufnr)
   local symbol = '▎'
 
   local previous_indent_level = indent_levels[math.max(1, start_line - 1)]
@@ -38,7 +38,7 @@ M.partial_draw = function(ns, indent_levels, bufnr, start_line, end_line, min_st
   if left_offset > shiftwidth * indent_level then return end
 
   -- apply the highlight
-  local hl_group = Utils.get_rainbow_hl(indent_level)
+  local hl_group = utils.get_rainbow_hl(indent_level)
   for i = math.max(min_start_line, start_line), math.min(max_end_line, end_line) do
     vim.api.nvim_buf_set_extmark(bufnr, ns, i - 1, 0, {
       virt_text = { { symbol, hl_group } },
@@ -46,6 +46,7 @@ M.partial_draw = function(ns, indent_levels, bufnr, start_line, end_line, min_st
       virt_text_win_col = indent_level * shiftwidth - left_offset,
       hl_mode = 'combine',
       priority = 2,
+      ephemeral = true,
     })
   end
 end

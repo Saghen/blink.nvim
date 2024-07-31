@@ -52,8 +52,10 @@ sync_module () {
   # - Move 'readmes/xxx/*' to the top level. This should modify only patch
   #   metadata, and not text (assuming it uses 'readmes/mini-xxx.md' on
   #   purpose; as in "use [this link](https://.../readmes/mini-xxx.md)").
+  # - move 'scripts/xxx/*' to the top level
   # TODO: handle relative links
   sed -i 's|readmes/[^/]*/\(.*\)|\1|g' $patch
+  sed -i 's|scripts/[^/]*/\(.*\)|\1|g' $patch
 
   # Apply patch
   printf "Applying patch\n"
@@ -64,7 +66,7 @@ sync_module () {
 
 sync_module "chartoggle"
 sync_module "clue"
-sync_module "cmp" Cargo.toml Cargo.lock flake.nix flake.lock build.rs build-ffi-bindings.sh
+sync_module "cmp" Cargo.toml Cargo.lock flake.nix flake.lock build.rs
 sync_module "indent"
 sync_module "select"
 sync_module "tree"

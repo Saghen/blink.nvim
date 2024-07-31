@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-cd "$(dirname "$(realpath "$0")")"
 
 # shellcheck disable=SC2155
 export LD_LIBRARY_PATH="$(pwd)/target/release"

@@ -3,8 +3,16 @@
 
 local M = {}
 
-M.setup = function(config)
-  require('blink.indent.config').setup(config)
+--- @param opts IndentConfig
+M.setup = function(opts)
+  -- todo: could also check filetype/buftype to see if the indents would be enabled
+  vim.api.nvim_create_autocmd('BufEnter', { callback = function() M.internal_setup(opts) end, once = true })
+end
+
+--- @param opts IndentConfig
+M.internal_setup = function(opts)
+  local config = require('blink.indent.config')
+  config.setup(opts)
   M.setup_hl_groups()
 
   local utils = require('blink.indent.utils')
@@ -19,24 +27,28 @@ M.setup = function(config)
       if range.end_line == range.start_line then return end
 
       local indent_levels, scope_range = M.get_indent_levels(winnr, range.bufnr, range.start_line, range.end_line)
-      require('blink.indent.static').partial_draw(
-        ns,
-        indent_levels,
-        range.bufnr,
-        range.start_line,
-        range.end_line,
-        range.horizontal_offset
-      )
-      require('blink.indent.scope').partial_draw(
-        ns,
-        indent_levels,
-        range.bufnr,
-        scope_range[1],
-        scope_range[2],
-        range.start_line,
-        range.end_line,
-        range.horizontal_offset
-      )
+      if config.static.enabled then
+        require('blink.indent.static').partial_draw(
+          ns,
+          indent_levels,
+          range.bufnr,
+          range.start_line,
+          range.end_line,
+          range.horizontal_offset
+        )
+      end
+      if config.scope.enabled then
+        require('blink.indent.scope').partial_draw(
+          ns,
+          indent_levels,
+          range.bufnr,
+          scope_range[1],
+          scope_range[2],
+          range.start_line,
+          range.end_line,
+          range.horizontal_offset
+        )
+      end
     end,
   })
 end

@@ -3,11 +3,13 @@
 --- @field filetypes string[]
 ---
 --- @class StaticConfig
+--- @field enabled boolean
 --- @field char string
 --- @field priority number
 --- @field highlights string[]
 ---
 --- @class ScopeConfig
+--- @field enabled boolean
 --- @field char string
 --- @field priority number
 --- @field highlights string[]
@@ -40,11 +42,13 @@ local config = {
       },
     },
     static = {
+      enabled = true,
       char = '▎',
       priority = 1,
       highlights = { 'BlinkIndent' },
     },
     scope = {
+      enabled = true,
       char = '▎',
       priority = 1024,
       highlights = {

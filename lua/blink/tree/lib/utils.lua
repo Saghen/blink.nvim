@@ -32,7 +32,7 @@ end
 --- @param timeout (number) Timeout in ms
 --- @returns (function, timer) Debounced function and timer. Remember to call
 --- `timer:close()` at the end or you will leak memory!
-function Utils.debounce(fn, ms)
+function Utils.debounce(fn, timeout)
   local timer = vim.loop.new_timer()
   local wrapped_fn
 
@@ -40,7 +40,7 @@ function Utils.debounce(fn, ms)
     local argv = { ... }
     local argc = select('#', ...)
 
-    timer:start(ms, 0, function() pcall(vim.schedule_wrap(fn), unpack(argv, 1, argc)) end)
+    timer:start(timeout, 0, function() pcall(vim.schedule_wrap(fn), unpack(argv, 1, argc)) end)
   end
   return wrapped_fn, timer
 end

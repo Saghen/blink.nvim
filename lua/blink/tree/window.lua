@@ -221,10 +221,10 @@ function Window:is_open()
 end
 
 function Window:reveal(silent)
-  if not self:is_open() then self:open(silent) end
-
   local current_buf_path = vim.fn.expand(vim.api.nvim_buf_get_name(0))
   if current_buf_path == '' then return end
+
+  if not self:is_open() then self:open(silent) end
 
   self.tree:expand_path(current_buf_path)
   self.renderer:once_after_render(function() self.renderer:select_path(current_buf_path) end)

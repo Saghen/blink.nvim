@@ -2,7 +2,7 @@
 -- likely via a queue of some sort
 
 local sep = '/'
-local uv = vim.loop
+local uv = vim.uv
 local config = {
   hide_dotfiles = true,
   hide = { ['.cache'] = true },
@@ -28,7 +28,7 @@ function FS.create_file(root_dir, path)
   for i, part in ipairs(parts) do
     full_path = full_path .. sep .. part
     local part_type = i == #parts and not vim.endswith(path, sep) and 'file' or 'directory'
-    local stat = vim.loop.fs_stat(full_path)
+    local stat = uv.fs_stat(full_path)
 
     local exists = stat ~= nil and stat.type == part_type
     if exists then
@@ -38,15 +38,15 @@ function FS.create_file(root_dir, path)
 
     -- Create the file
     if part_type == 'file' then
-      local fd = vim.loop.fs_open(full_path, 'w', 438) -- 438 is 0666 in octal
+      local fd = uv.fs_open(full_path, 'w', 438) -- 438 is 0666 in octal
       if fd then
-        vim.loop.fs_close(fd)
+        uv.fs_close(fd)
       else
         error('Failed to create file: ' .. full_path)
       end
     -- Create the directory
     else
-      local success, err = pcall(vim.loop.fs_mkdir, full_path, 493) -- 493 is 0755 in octal
+      local success, err = pcall(uv.fs_mkdir, full_path, 493) -- 493 is 0755 in octal
       if not success then error('Failed to create directory: ' .. full_path .. ' (' .. err .. ')') end
     end
 
@@ -62,16 +62,16 @@ function FS.rename(old_path, new_path)
 end
 
 function FS.copy_file(old_path, new_path)
-  local success, err = pcall(vim.loop.fs_copyfile, old_path, new_path)
+  local success, err = pcall(uv.fs_copyfile, old_path, new_path)
   if not success then error('Failed to copy: ' .. old_path .. ' -> ' .. new_path .. ' (' .. err .. ')') end
 end
 
 function FS.read_file(path)
-  local fd = vim.loop.fs_open(path, 'r', 438) -- 438 is 0666 in octal
+  local fd = uv.fs_open(path, 'r', 438) -- 438 is 0666 in octal
   if not fd then error('Failed to open file: ' .. path) end
 
-  local data = vim.loop.fs_read(fd, vim.loop.fs_stat(path).size, 0)
-  vim.loop.fs_close(fd)
+  local data = uv.fs_read(fd, uv.fs_stat(path).size, 0)
+  uv.fs_close(fd)
 
   return data
 end
@@ -93,6 +93,7 @@ function FS.read_file_async(path, callback)
 end
 
 function FS.scan_dir_async(path, callback)
+  local max_entries = 200
   -- open directory, return early if failed
   -- todo: don't limit to 200 entries
   uv.fs_opendir(path, function(err, handle)
@@ -102,16 +103,26 @@ function FS.scan_dir_async(path, callback)
       return
     end
 
-    uv.fs_readdir(handle, function(err, entries)
-      uv.fs_closedir(handle)
-      if err ~= nil or entries == nil then
-        -- print('Error reading directory: ' .. parent.path .. ' ' .. (err or 'nil'))
-        callback({})
-        return
-      end
-      callback(entries)
-    end)
-  end, 200)
+    local all_entries = {}
+
+    local function read_dir()
+      uv.fs_readdir(handle, function(err, entries)
+        if err ~= nil or entries == nil then
+          -- print('Error reading directory: ' .. parent.path .. ' ' .. (err or 'nil'))
+          callback({})
+          return
+        end
+
+        vim.list_extend(all_entries, entries)
+        if #entries == max_entries then
+          read_dir()
+        else
+          callback(all_entries)
+        end
+      end)
+    end
+    read_dir()
+  end, max_entries)
 end
 
 function FS.watch_dir(path, callback)

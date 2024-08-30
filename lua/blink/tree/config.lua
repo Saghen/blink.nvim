@@ -1,18 +1,17 @@
 local M = {}
 
 M.default = {
-	hidden_by_default = true,
-	hide_dotfiles = false,
-	hide = {
-		'.github',
-		'.direnv',
-		'.devenv'
-	},
-	never_show = {
-		'.git',
-		'.cache',
-		'node_modules'
-	},
+  hidden_by_default = true,
+  hide_dotfiles = false,
+  hide = {
+    '.direnv',
+    '.devenv',
+  },
+  never_show = {
+    '.git',
+    '.cache',
+    'node_modules',
+  },
 }
 
 function M.setup(opts)

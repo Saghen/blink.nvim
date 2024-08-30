@@ -31,6 +31,7 @@ function Basic.rename_file(hovered_node, inst)
   if hovered_node == inst.tree.root then vim.print('Cannot rename root') end
 
   popup.new_input({ title = 'Rename', title_pos = 'center', initial_text = hovered_node.filename }, function(input)
+    if input == nil then return end
     local new_path = hovered_node.parent.path .. '/' .. input
     -- FIXME: would break if they rename the top level dir
     fs.rename(hovered_node.path, new_path)

@@ -95,7 +95,6 @@ end
 function FS.scan_dir_async(path, callback)
   local max_entries = 200
   -- open directory, return early if failed
-  -- todo: don't limit to 200 entries
   uv.fs_opendir(path, function(err, handle)
     if err ~= nil or handle == nil then
       -- print('Error opening directory: ' .. parent.path .. ' ' .. (err or 'nil'))

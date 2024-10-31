@@ -11,10 +11,10 @@ Experimental library of neovim plugins with a focus on performance and simplicit
 | status | module                                                  | description                                                                                                   |
 |--------|---------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | stable | [blink.chartoggle](/readmes/chartoggle/README.md) | Toggles a character at the end of the current line                                                                       |
-| beta   | [blink.cmp](/readmes/cmp/README.md)               | Performant autocompletion plugin, inspired by [nvim-cmp](https://github.com/hrsh7th/nvim-cmp)                 |
+| beta   | [blink.cmp](https://github.com/saghen/blink.cmp)               | Performant autocompletion plugin, inspired by [nvim-cmp](https://github.com/hrsh7th/nvim-cmp)                 |
 | stable | [blink.indent](/readmes/indent/README.md)         | Indent guides with scope on every keystroke                                                                   |
 | WIP    | [blink.select](/readmes/select/README.md)         | Generic selection UI with built-in providers                                                     |
-| WIP    | [blink.tree](/readmes/tree/README.md)             | Tree plugin with async io and FFI git, inspired by [neo-tree](https://github.com/nvim-neo-tree/neo-tree.nvim) |
+| alpha  | [blink.tree](/readmes/tree/README.md)             | Tree plugin with async io and FFI git, similar to [neo-tree](https://github.com/nvim-neo-tree/neo-tree.nvim) but eventually to be rewritten to be like oil.nvim |
 
 ## Installation
 
@@ -23,11 +23,35 @@ Experimental library of neovim plugins with a focus on performance and simplicit
 ```lua
 {
   'saghen/blink.nvim',
+  keys = {
+	-- chartoggle
+	{
+	  ';',
+	  function()
+	  	require('blink.chartoggle').toggle_char_eol(';')
+	  end,
+	  mode = { 'n', 'v' },
+	  desc = 'Toggle ; at eol',
+	},
+	{
+	  ',',
+	  function()
+	  	require('blink.chartoggle').toggle_char_eol(',')
+	  end,
+	  mode = { 'n', 'v' },
+	  desc = 'Toggle , at eol',
+	},
+
+	-- tree
+	{ '<C-e>', '<cmd>BlinkTree reveal<cr>', desc = 'Reveal current file in tree' },
+	{ '<leader>E', '<cmd>BlinkTree toggle<cr>', desc = 'Reveal current file in tree' },
+	{ '<leader>e', '<cmd>BlinkTree toggle-focus<cr>', desc = 'Toggle file tree focus' },
+  }
   -- all modules handle lazy loading internally
   lazy = false,
   opts = {
     chartoggle = { enabled = true },
-    cmp = { enabled = true },
     indent = { enabled = true },
+    tree = { enabled = true }
   }
 }

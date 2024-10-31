@@ -58,7 +58,7 @@ M.get_win_scroll_range = function(winnr)
   local start_line = math.max(1, vim.fn.line('w0', winnr) - 1)
   local end_line = math.max(start_line, math.min(line_count, vim.fn.line('w$', winnr) + 1))
 
-  local horizontal_offset = vim.fn.winsaveview().leftcol
+  local horizontal_offset = vim.api.nvim_win_call(winnr, function() return vim.fn.winsaveview().leftcol end)
 
   return { bufnr = bufnr, start_line = start_line, end_line = end_line, horizontal_offset = horizontal_offset }
 end

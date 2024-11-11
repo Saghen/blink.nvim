@@ -28,38 +28,11 @@
 
       perSystem = { config, self', inputs', pkgs, system, lib, ... }: {
         # define the packages provided by this flake
-        packages = let
-          inherit (fenix.packages.${system}.minimal) toolchain;
-
-          rustPlatform = pkgs.makeRustPlatform {
-            cargo = toolchain;
-            rustc = toolchain;
-          };
-
-          src = ./.;
-          version = "2024-08-02";
-
-          blink-fuzzy-lib = rustPlatform.buildRustPackage {
-            pname = "blink-fuzzy-lib";
-            inherit src version;
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-              outputHashes = {
-                "c-marshalling-0.2.0" =
-                  "sha256-eL6nkZOtuLLQ0r31X7uroUUDYZsWOJ9KNXl4NCVNRuw=";
-                "frizbee-0.1.0" =
-                  "sha256-ksiB8R97z+heM6Ynh3D9Rf+pMhEPqncomgTXT2n5byQ=";
-              };
-            };
-          };
-        in {
+        packages = {
           blink-nvim = pkgs.vimUtils.buildVimPlugin {
             pname = "blink-nvim";
-            inherit src version;
-            preInstall = ''
-              mkdir -p target/release
-              ln -s ${blink-fuzzy-lib}/lib/libblink_cmp_fuzzy.so target/release/libblink_cmp_fuzzy.so
-            '';
+            version = "2024-11-11";
+            src = ./.;
 
             meta = {
               description = "Set of simple, performant neovim plugins";
@@ -70,16 +43,6 @@
           };
 
           default = self'.packages.blink-nvim;
-        };
-
-        # define the default dev environment
-        devenv.shells.default = {
-          name = "blink";
-
-          languages.rust = {
-            enable = true;
-            channel = "nightly";
-          };
         };
       };
     };

@@ -23,6 +23,7 @@
 --- @field blocked BlockedConfig
 --- @field static StaticConfig
 --- @field scope ScopeConfig
+--- @field visible boolean
 --- @field default IndentConfig
 local config = {
   default = {
@@ -73,6 +74,7 @@ local config = {
         },
       },
     },
+    visible = true,
   },
 }
 

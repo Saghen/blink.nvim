@@ -14,6 +14,8 @@
   opts = {
     indent = {
       enabled = true,
+      -- start with indent guides visible
+      visible = true,
       blocked = {
         buftypes = {},
         filetypes = {},

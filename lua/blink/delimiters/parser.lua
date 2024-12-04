@@ -82,14 +82,14 @@ function parser:parse_line(line_number, line, state, reset_state_on)
 
     --- Block Comments/Strings
     -- check for these first since i.e. for lua, they're an extension of the line comment/string
-    if line:sub(i, i + #self.block_comment_opener - 1) == self.block_comment_opener then
+    if self.block_comment_opener and line:sub(i, i + #self.block_comment_opener - 1) == self.block_comment_opener then
       log('block comment')
       state = States.BLOCK_COMMENT
       reset_state_on = self.block_comment_closer
       goto continue
     end
 
-    if line:sub(i, i + #self.block_string_opener - 1) == self.block_string_opener then
+    if self.block_string_opener and line:sub(i, i + #self.block_string_opener - 1) == self.block_string_opener then
       log('block string')
       state = States.BLOCK_STRING
       reset_state_on = self.block_string_closer

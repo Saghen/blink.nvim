@@ -1,0 +1,6 @@
+--- @class blink.delimiters.LanguageDefinition
+--- @field delimiters table<string, string> Opening -> closing delimiters
+--- @field line_comment string[]
+--- @field block_comment [string, string] Opening and closing
+--- @field string string[]
+--- @field block_string [string, string] Opening and closing

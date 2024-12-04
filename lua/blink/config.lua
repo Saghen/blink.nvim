@@ -8,6 +8,9 @@ M.default = {
   clue = {
     enabled = false,
   },
+  delimiters = {
+    enabled = false,
+  },
   indent = {
     enabled = false,
   },

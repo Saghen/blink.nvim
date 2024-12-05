@@ -60,6 +60,7 @@ function parser:parse_line(line_number, line, state, reset_state_on)
     end
 
     --- Escaped characters
+    --- TODO: handle escaped new lines such as for line strings
     if char == '\\' then
       is_escaped = not is_escaped
       goto continue

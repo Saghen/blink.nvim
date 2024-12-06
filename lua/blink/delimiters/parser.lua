@@ -183,7 +183,7 @@ function parser:asign_highlights(matches_by_line, highlights)
       -- TODO: maybe search down the stack a bit, in case there's an opening delimiter that's not closed
       else
         local opening_match = stack[#stack]
-        if opening_match.closing == match.text then
+        if opening_match ~= nil and opening_match.closing == match.text then
           table.remove(stack)
 
           highlight_idx = highlight_idx - 1

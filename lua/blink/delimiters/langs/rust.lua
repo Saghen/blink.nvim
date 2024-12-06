@@ -9,6 +9,6 @@ return {
   },
   line_comment = { '//' },
   block_comment = { '/*', '*/' },
-  string = { "'" },
+  string = { '"' },
   block_string = { '"', '"' },
 }

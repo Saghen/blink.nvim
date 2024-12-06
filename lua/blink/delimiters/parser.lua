@@ -160,7 +160,7 @@ end
 --- @param matches_by_line blink.delimiters.Match[][]
 --- @param highlights string[]
 --- @return blink.delimiters.MatchWithHighlight[][]
-function parser:asign_highlights(matches_by_line, highlights)
+function parser:assign_highlights(matches_by_line, highlights)
   local matches_by_line_with_highlights = {}
   --- @type blink.delimiters.MatchWithHighlight[]
   local stack = {}

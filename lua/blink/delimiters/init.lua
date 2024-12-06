@@ -32,7 +32,7 @@ function delimiters.setup(user_config)
       if changedtick_per_buffer[bufnr] ~= changedtick then
         local start_time = vim.loop.hrtime()
         matches_per_buffer[bufnr] = parser:parse_buffer(bufnr)
-        matches_per_buffer[bufnr] = parser:asign_highlights(matches_per_buffer[bufnr], config.highlights)
+        matches_per_buffer[bufnr] = parser:assign_highlights(matches_per_buffer[bufnr], config.highlights)
         if config.debug then
           vim.print(matches_per_buffer[bufnr])
           vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e9 .. ' ms')

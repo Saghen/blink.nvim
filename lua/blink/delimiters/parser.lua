@@ -64,6 +64,8 @@ function parser:parse_line(line_number, line, state, reset_state_on)
   local matches = {}
   local is_escaped = false
 
+  -- PERF: create is_block_comment_opener, ... that check the string char by char
+
   local char
   for i = 1, #line do
     char = line:sub(i, i)
@@ -177,6 +179,7 @@ function parser:attach_to_buffer(bufnr)
     end
 
     -- Reassign the highlights
+    -- PERF: don't recalculate all of the highlights on every update
     self.buffer_highlights[bufnr] = parser:assign_highlights(parsed_lines, config.highlights)
 
     if config.debug then vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms') end

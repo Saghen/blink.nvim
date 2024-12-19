@@ -20,15 +20,18 @@ local States = {
   BLOCK_COMMENT = 4,
 }
 
+local config = require('blink.delimiters.config')
 local parser = {}
 
 --- @param definition blink.delimiters.LanguageDefinition
 function parser.new(definition)
   local self = setmetatable({}, { __index = parser })
 
-  self.delimiter_openers = vim.tbl_keys(definition.delimiters)
-  self.delimiter_closers = vim.tbl_values(definition.delimiters)
-  self.delimiters = definition.delimiters
+  self.delimiter_openers = definition.delimiters
+  self.delimiter_closers = {}
+  for k, v in pairs(definition.delimiters) do
+    self.delimiter_closers[v] = k
+  end
 
   self.block_comment_opener = definition.block_comment[1]
   self.block_comment_closer = definition.block_comment[2]
@@ -40,24 +43,30 @@ function parser.new(definition)
   self.string = definition.string
 
   self.definition = definition
+
+  self.buffer_parsed_lines = {}
+  self.buffer_highlights = {}
+
   return self
 end
+
+--- @class blink.delimiters.ParsedLine
+--- @field matches blink.delimiters.Match[]
+--- @field state blink.delimiters.ParserState
+--- @field reset_state_on string | nil
 
 --- @param line_number number
 --- @param line string
 --- @param state blink.delimiters.ParserState
 --- @param reset_state_on? string
---- @return blink.delimiters.Match[], blink.delimiters.ParserState, string | nil
+--- @return blink.delimiters.ParsedLine
 function parser:parse_line(line_number, line, state, reset_state_on)
   local matches = {}
   local is_escaped = false
+
+  local char
   for i = 1, #line do
-    local char = line:sub(i, i)
-    local log = function(msg)
-      if require('blink.delimiters.config').debug then
-        vim.print(string.format('%d:%d: "%s" %s', line_number, i, char, msg))
-      end
-    end
+    char = line:sub(i, i)
 
     --- Escaped characters
     --- TODO: handle escaped new lines such as for line strings
@@ -84,14 +93,12 @@ function parser:parse_line(line_number, line, state, reset_state_on)
     --- Block Comments/Strings
     -- check for these first since i.e. for lua, they're an extension of the line comment/string
     if self.block_comment_opener and line:sub(i, i + #self.block_comment_opener - 1) == self.block_comment_opener then
-      log('block comment')
       state = States.BLOCK_COMMENT
       reset_state_on = self.block_comment_closer
       goto continue
     end
 
     if self.block_string_opener and line:sub(i, i + #self.block_string_opener - 1) == self.block_string_opener then
-      log('block string')
       state = States.BLOCK_STRING
       reset_state_on = self.block_string_closer
       goto continue
@@ -101,14 +108,12 @@ function parser:parse_line(line_number, line, state, reset_state_on)
     -- immediately return for line comments since they must go until the end of line
     for _, line_comment in ipairs(self.line_comment) do
       if line:sub(i, i + #line_comment - 1) == line_comment then
-        log('line comment')
-        return matches, States.CODE, nil
+        return { matches = matches, state = States.CODE, reset_state_on = nil }
       end
     end
 
     for _, string in ipairs(self.string) do
       if line:sub(i, i + #string - 1) == string then
-        log('string')
         state = States.STRING
         reset_state_on = string
         goto continue
@@ -116,18 +121,15 @@ function parser:parse_line(line_number, line, state, reset_state_on)
     end
 
     --- Parenthesis
-    if vim.tbl_contains(self.delimiter_openers, char) then
-      log('delimiter opening')
-      local closing = self.delimiters[char]
+    if self.delimiter_openers[char] then
       table.insert(matches, {
         text = char,
         row = line_number,
         col = i,
-        closing = closing,
+        closing = self.delimiter_openers[char],
       })
     end
-    if vim.tbl_contains(self.delimiter_closers, char) then
-      log('delimiter closing')
+    if self.delimiter_closers[char] then
       table.insert(matches, {
         text = char,
         row = line_number,
@@ -138,35 +140,68 @@ function parser:parse_line(line_number, line, state, reset_state_on)
     ::continue::
   end
 
-  return matches, state, reset_state_on
+  return {
+    matches = matches,
+    state = state,
+    reset_state_on = reset_state_on,
+  }
 end
 
-function parser:parse_buffer(bufnr)
-  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local all_matches = {}
-  local state = States.CODE
-  local reset_state_on = nil
+function parser:attach_to_buffer(bufnr)
+  if self.buffer_parsed_lines[bufnr] ~= nil then return end
+  self.buffer_parsed_lines[bufnr] = {}
+  local parsed_lines = self.buffer_parsed_lines[bufnr]
 
-  for line_number, line in ipairs(lines) do
-    local line_matches, line_state, line_reset_state_on = self:parse_line(line_number, line, state, reset_state_on)
-    all_matches[line_number] = line_matches
-    state = line_state
-    reset_state_on = line_reset_state_on
+  local function parse(first_line, old_last_line, new_last_line)
+    local start_time = vim.loop.hrtime()
+
+    -- Parse all of the new lines
+    local previous_parsed_line = parsed_lines[first_line] or { state = States.CODE }
+    local lines = vim.api.nvim_buf_get_lines(bufnr, first_line, new_last_line, false)
+    for line_number, line in ipairs(lines) do
+      line_number = line_number + first_line
+      local parsed_line =
+        self:parse_line(line_number, line, previous_parsed_line.state, previous_parsed_line.reset_state_on)
+      previous_parsed_line = parsed_line
+
+      if line_number <= old_last_line then
+        parsed_lines[line_number] = parsed_line
+      else
+        table.insert(parsed_lines, line_number, parsed_line)
+      end
+    end
+
+    -- Remove the previous parsed lines, outside of the new range
+    for i = new_last_line, old_last_line - 1 do
+      table.remove(parsed_lines, i + 1)
+    end
+
+    -- Reassign the highlights
+    self.buffer_highlights[bufnr] = parser:assign_highlights(parsed_lines, config.highlights)
+
+    if config.debug then vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms') end
   end
 
-  return all_matches
+  parse(0, 0, vim.api.nvim_buf_line_count(bufnr))
+
+  vim.api.nvim_buf_attach(bufnr, false, {
+    on_lines = function(_, _, _, first_line, old_last_line, new_last_line)
+      parse(first_line, old_last_line, new_last_line)
+    end,
+  })
 end
 
---- @param matches_by_line blink.delimiters.Match[][]
+--- @param parsed_lines blink.delimiters.ParsedLine[]
 --- @param highlights string[]
 --- @return blink.delimiters.MatchWithHighlight[][]
-function parser:assign_highlights(matches_by_line, highlights)
+function parser:assign_highlights(parsed_lines, highlights)
   local matches_by_line_with_highlights = {}
   --- @type blink.delimiters.MatchWithHighlight[]
   local stack = {}
   local highlight_idx = 0
 
-  for line_number, matches in pairs(matches_by_line) do
+  for line_number, parsed_line in pairs(parsed_lines) do
+    local matches = parsed_line.matches
     matches_by_line_with_highlights[line_number] = {}
     for _, match in ipairs(matches) do
       --- @cast match blink.delimiters.MatchWithHighlight

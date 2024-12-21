@@ -174,8 +174,8 @@ function parser:attach_to_buffer(bufnr)
     end
 
     -- Remove the previous parsed lines, outside of the new range
-    for i = new_last_line, old_last_line - 1 do
-      table.remove(parsed_lines, i + 1)
+    for _ = new_last_line, old_last_line - 1 do
+      table.remove(parsed_lines, new_last_line + 1)
     end
 
     -- Reassign the highlights

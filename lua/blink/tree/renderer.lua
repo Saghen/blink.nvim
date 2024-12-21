@@ -43,24 +43,14 @@ end
 
 function Renderer.new(bufnr)
   local self = setmetatable({}, { __index = Renderer })
-  self.once_after_render_callbacks = {}
   self.nodes_by_lines = nil
   self.bufnr = bufnr
-  -- hack: the once_after_render callback depends on this for some behavior like reveal
-  -- since without a debounce, there would be multiple renders before the node is visible
-  self.render_window = require('blink.tree.lib.utils').debounce(self.render_window, 4)
 
   local modified = {}
 
-  local render_time = 0
   -- Draws the indent and icon
   api.nvim_set_decoration_provider(ns, {
     on_win = function(_, curr_winid, currr_bufnr)
-      if render_time > 0 then
-        -- vim.print('Last render time ' .. render_time .. 'ms')
-        render_time = 0
-      end
-
       local should_render = curr_winid == self.winnr and currr_bufnr == self.bufnr
       if not should_render then return false end
 
@@ -70,8 +60,6 @@ function Renderer.new(bufnr)
     end,
     on_line = function(_, _, _, line_number)
       if self.nodes_by_lines == nil then return end
-
-      local start = vim.loop.hrtime()
 
       local node = self.nodes_by_lines[line_number + 1]
       local next_node = self.nodes_by_lines[line_number + 2]
@@ -146,7 +134,6 @@ function Renderer.new(bufnr)
           ephemeral = true,
         })
       end
-      render_time = render_time + (vim.loop.hrtime() - start) / 1000000
     end,
   })
 
@@ -177,12 +164,6 @@ function Renderer:render_window(winnr, root)
   api.nvim_buf_set_lines(self.bufnr, last_line_number, api.nvim_buf_line_count(self.bufnr), false, {})
 
   api.nvim_set_option_value('modifiable', false, { buf = self.bufnr })
-
-  -- run once after render callbacks
-  for _, callback in ipairs(self.once_after_render_callbacks) do
-    callback()
-  end
-  self.once_after_render_callbacks = {}
 
   return nodes_by_lines
 end
@@ -228,7 +209,5 @@ function Renderer:select_path(path)
     end
   end
 end
-
-function Renderer:once_after_render(callback) table.insert(self.once_after_render_callbacks, callback) end
 
 return Renderer

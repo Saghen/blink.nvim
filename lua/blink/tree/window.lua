@@ -6,7 +6,7 @@ function Window.new()
   local self = setmetatable({}, { __index = Window })
   self.winnr = -1
   self.bufnr = -1
-  self.tree = require('blink.tree.tree').new(vim.fn.getcwd(), function() self:render() end)
+  self.tree = require('blink.tree.tree').new(vim.fn.getcwd(), function(callback) self:render(callback) end)
 
   self.augroup = api.nvim_create_augroup('BlinkTreeWindow', { clear = true })
 
@@ -143,16 +143,20 @@ function Window:ensure_buffer()
   require('blink.tree.binds').attach_to_instance(self)
 end
 
-function Window:render()
+function Window:render(callback)
   vim.schedule(function()
     if not self:is_open() then return end
     self.nodes_by_line = self.renderer:render_window(self.winnr, self.tree.root)
+    if callback then callback() end
   end)
 end
 
-function Window:open(silent)
+function Window:open(silent, callback)
   self:ensure_buffer()
-  if self:is_open() then return end
+  if self:is_open() then
+    if callback then callback() end
+    return
+  end
 
   self.winnr = api.nvim_open_win(self.bufnr, not silent, {
     win = -1,
@@ -174,7 +178,7 @@ function Window:open(silent)
     end)
   end
 
-  self:render()
+  self:render(callback)
 end
 
 function Window:close()
@@ -224,12 +228,10 @@ function Window:reveal(silent)
   local current_buf_path = vim.fn.expand(vim.api.nvim_buf_get_name(0))
   if current_buf_path == '' then return end
 
-  if not self:is_open() then self:open(silent) end
-
-  self.tree:expand_path(current_buf_path)
-  self.renderer:once_after_render(function() self.renderer:select_path(current_buf_path) end)
-
-  if not silent then self:focus() end
+  self:open(silent, function()
+    self.tree:expand_path(current_buf_path, function() self.renderer:select_path(current_buf_path) end)
+    if not silent then self:focus() end
+  end)
 end
 
 return Window

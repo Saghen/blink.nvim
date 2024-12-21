@@ -12,8 +12,7 @@ function Basic.new_file(hovered_node, inst)
   popup.new_input({ title = 'New File (append / for dir)', title_pos = 'center' }, function(input)
     if input == nil then return end
     local final_path = fs.create_file(hovered_node.path, input)
-    inst.tree:expand_path(final_path)
-    inst.renderer:once_after_render(function() inst.renderer:select_path(final_path) end)
+    inst.tree:expand_path(final_path, function() inst.renderer:select_path(final_path) end)
   end)
 end
 
@@ -35,8 +34,7 @@ function Basic.rename_file(hovered_node, inst)
     local new_path = hovered_node.parent.path .. '/' .. input
     -- FIXME: would break if they rename the top level dir
     fs.rename(hovered_node.path, new_path)
-    inst.tree:expand_path(new_path)
-    inst.renderer:once_after_render(function() inst.renderer:select_path(new_path) end)
+    inst.tree:expand_path(new_path, function() inst.renderer:select_path(new_path) end)
   end)
 end
 

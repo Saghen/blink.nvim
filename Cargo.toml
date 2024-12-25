@@ -1,0 +1,15 @@
+[package]
+name = "blink_delimiters"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.95"
+nvim-oxi = { version = "0.5.1", features = ["neovim-0-10"] }
+portable-pty = "0.9.0"
+serde = "1.0.216"
+lazy_static = "1.5.0"
+logos = "0.15.0"

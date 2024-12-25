@@ -21,6 +21,7 @@ local States = {
 }
 
 local config = require('blink.delimiters.config')
+local utils = require('blink.delimiters.utils')
 local parser = {}
 
 --- @param definition blink.delimiters.LanguageDefinition
@@ -44,8 +45,20 @@ function parser.new(definition)
 
   self.definition = definition
 
-  self.buffer_parsed_lines = {}
-  self.buffer_highlights = {}
+  self.attached_buffers = {}
+  self.buffer_parsed_by_line = {}
+  self.buffer_matches_with_highlights_by_line = {}
+  self.buffer_stacks_by_line = {}
+
+  -- Cleanup on buffer delete
+  vim.api.nvim_create_autocmd('BufDelete', {
+    callback = function(event)
+      self.attached_buffers[event.buf] = nil
+      self.buffer_parsed_by_line[event.buf] = nil
+      self.buffer_matches_with_highlights_by_line[event.buf] = nil
+      self.buffer_stacks_by_line[event.buf] = nil
+    end,
+  })
 
   return self
 end
@@ -150,89 +163,121 @@ function parser:parse_line(line_number, line, state, reset_state_on)
 end
 
 function parser:attach_to_buffer(bufnr)
-  if self.buffer_parsed_lines[bufnr] ~= nil then return end
-  self.buffer_parsed_lines[bufnr] = {}
-  local parsed_lines = self.buffer_parsed_lines[bufnr]
+  if self.attached_buffers[bufnr] ~= nil then return end
+  self.attached_buffers[bufnr] = true
 
-  local function parse(first_line, old_last_line, new_last_line)
-    local start_time = vim.loop.hrtime()
-
-    -- Parse all of the new lines
-    local previous_parsed_line = parsed_lines[first_line] or { state = States.CODE }
-    local lines = vim.api.nvim_buf_get_lines(bufnr, first_line, new_last_line, false)
-    for line_number, line in ipairs(lines) do
-      line_number = line_number + first_line
-      local parsed_line =
-        self:parse_line(line_number, line, previous_parsed_line.state, previous_parsed_line.reset_state_on)
-      previous_parsed_line = parsed_line
-
-      if line_number <= old_last_line then
-        parsed_lines[line_number] = parsed_line
-      else
-        table.insert(parsed_lines, line_number, parsed_line)
-      end
-    end
-
-    -- Remove the previous parsed lines, outside of the new range
-    for _ = new_last_line, old_last_line - 1 do
-      table.remove(parsed_lines, new_last_line + 1)
-    end
-
-    -- Reassign the highlights
-    -- PERF: don't recalculate all of the highlights on every update
-    self.buffer_highlights[bufnr] = parser:assign_highlights(parsed_lines, config.highlights)
-
-    if config.debug then vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms') end
-  end
-
-  parse(0, 0, vim.api.nvim_buf_line_count(bufnr))
+  self:incremental_parse(bufnr, 1, 0, vim.api.nvim_buf_line_count(bufnr))
+  self:incremental_highlights(bufnr, 1, 0, vim.api.nvim_buf_line_count(bufnr))
 
   vim.api.nvim_buf_attach(bufnr, false, {
-    on_lines = function(_, _, _, first_line, old_last_line, new_last_line)
-      parse(first_line, old_last_line, new_last_line)
+    on_lines = function(_, _, _, start, old_end, new_end)
+      -- detach if we're no longer attached
+      if self.attached_buffers[bufnr] == nil then return true end
+      vim.print('Update range, Start: ' .. start .. ', Old end: ' .. old_end .. ', New end: ' .. new_end)
+
+      self:incremental_parse(bufnr, start + 1, old_end, new_end)
+      self:incremental_highlights(bufnr, start + 1, old_end, new_end)
     end,
   })
 end
 
---- @param parsed_lines blink.delimiters.ParsedLine[]
---- @param highlights string[]
+--- Incrementally updates the parsed lines
+--- @param bufnr number
+--- @param start number 0-indexed
+--- @param old_end number 0-indexed
+--- @param new_end number 0-indexed
+--- @return blink.delimiters.ParsedLine[]
+function parser:incremental_parse(bufnr, start, old_end, new_end)
+  local start_time = vim.loop.hrtime()
+
+  self.buffer_parsed_by_line[bufnr] = self.buffer_parsed_by_line[bufnr] or {}
+  local parsed_by_line = self.buffer_parsed_by_line[bufnr]
+
+  -- Parse all of the new lines
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start - 1, new_end, false)
+  local new_parsed_by_lines = utils.map_accum(
+    lines,
+    parsed_by_line[start - 1] or { state = States.CODE }, -- previous parsed line
+    function(last_parsed_line, line, line_number)
+      line_number = line_number + start - 1
+      return self:parse_line(line_number, line, last_parsed_line.state, last_parsed_line.reset_state_on)
+    end
+  )
+  utils.splice(parsed_by_line, start, old_end, new_parsed_by_lines)
+
+  if config.debug then vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms') end
+end
+
+--- Incrementally updates the highlights from the parsed lines
+--- @param bufnr number
+--- @param start number 1-indexed
+--- @param old_end number 1-indexed
+--- @param new_end number 1-indexed
 --- @return blink.delimiters.MatchWithHighlight[][]
-function parser:assign_highlights(parsed_lines, highlights)
-  local matches_by_line_with_highlights = {}
-  --- @type blink.delimiters.MatchWithHighlight[]
-  local stack = {}
-  local highlight_idx = 0
+function parser:incremental_highlights(bufnr, start, old_end, new_end)
+  local start_time = vim.loop.hrtime()
 
-  for line_number, parsed_line in pairs(parsed_lines) do
-    local matches = parsed_line.matches
-    matches_by_line_with_highlights[line_number] = {}
-    for _, match in ipairs(matches) do
-      --- @cast match blink.delimiters.MatchWithHighlight
+  local parsed_by_line = self.buffer_parsed_by_line[bufnr]
+  assert(parsed_by_line ~= nil, 'incremental_parse must be called before incremental_highlights')
 
-      -- opening delimiter
-      if match.closing then
-        table.insert(stack, match)
+  self.buffer_matches_with_highlights_by_line[bufnr] = self.buffer_matches_with_highlights_by_line[bufnr] or {}
+  local matches_with_highlights_by_line = self.buffer_matches_with_highlights_by_line[bufnr]
 
-        match.highlight = highlights[highlight_idx % #highlights + 1]
-        highlight_idx = highlight_idx + 1
-        table.insert(matches_by_line_with_highlights[line_number], match)
+  self.buffer_stacks_by_line[bufnr] = self.buffer_stacks_by_line[bufnr] or {}
+  local stacks_by_line = self.buffer_stacks_by_line[bufnr]
 
-      -- closing delimiter
-      -- TODO: maybe search down the stack a bit, in case there's an opening delimiter that's not closed
-      else
+  local highlights = config.highlights
+
+  local new_matches_with_highlights_by_line, new_stacks_by_line = utils.map_accum(
+    utils.slice(parsed_by_line, start, new_end),
+    stacks_by_line[start - 1] or {}, -- previous stack
+    function(stack, parsed_line)
+      stack = utils.shallow_copy(stack)
+
+      local matches = {}
+      for _, match in ipairs(parsed_line.matches) do
+        --- @cast match blink.delimiters.MatchWithHighlight
         local opening_match = stack[#stack]
-        if opening_match ~= nil and opening_match.closing == match.text then
-          table.remove(stack)
 
-          highlight_idx = highlight_idx - 1
-          match.highlight = highlights[highlight_idx % #highlights + 1]
-          table.insert(matches_by_line_with_highlights[line_number], match)
+        -- opening delimiter
+        if match.closing then
+          match.highlight = highlights[#stack % #highlights + 1]
+          table.insert(stack, match)
+          table.insert(matches, match)
+
+        -- closing delimiter
+        -- TODO: maybe search down the stack a bit, in case there's an opening delimiter that's not closed
+        elseif opening_match ~= nil and opening_match.closing == match.text then
+          table.remove(stack)
+          match.highlight = highlights[#stack % #highlights + 1]
+          table.insert(matches, match)
         end
       end
+      return matches, stack
     end
+  )
+
+  local last_stack = new_stacks_by_line[#new_stacks_by_line] or {}
+  local previous_stack_for_line = stacks_by_line[old_end] or {}
+
+  utils.splice(matches_with_highlights_by_line, start, old_end, new_matches_with_highlights_by_line)
+  utils.splice(stacks_by_line, start, old_end, new_stacks_by_line)
+
+  -- If the stack has changed, we re-highlight everything
+  -- TODO: we should instead only re-highlight lines until we reach a stack that is equal
+  if not vim.deep_equal(last_stack, previous_stack_for_line) and new_end ~= vim.api.nvim_buf_line_count(bufnr) then
+    vim.print('Stack changed')
+    vim.print(previous_stack_for_line)
+    vim.print(last_stack)
+    self:incremental_highlights(
+      bufnr,
+      new_end + 1,
+      #matches_with_highlights_by_line,
+      vim.api.nvim_buf_line_count(bufnr)
+    )
   end
 
-  return matches_by_line_with_highlights
+  if config.debug then vim.print('highlighting time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms') end
 end
 
 return parser

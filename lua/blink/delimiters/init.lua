@@ -8,9 +8,6 @@ function delimiters.setup(user_config)
   local config = require('blink.delimiters.config')
   config.merge_with(user_config)
 
-  -- local Parser = require('blink.delimiters.parser')
-  -- local parsers = {}
-
   local buffer_changed_ticks = {}
 
   vim.api.nvim_set_decoration_provider(config.ns, {
@@ -20,18 +17,11 @@ function delimiters.setup(user_config)
 
       local start_time = vim.loop.hrtime()
       local did_parse = require('blink_delimiters').parse_buffer(bufnr)
-      if did_parse then vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms') end
-      -- -- only enable for files we support
-      -- local filetype = vim.bo[bufnr].filetype
-      -- local ok, definition = pcall(require, 'blink.delimiters.langs.' .. filetype)
-      -- if not ok then return false end
-      --
-      -- -- get a parser, or create one if it doesn't exist
-      -- if parsers[filetype] == nil then parsers[filetype] = Parser.new(definition) end
-      -- local parser = parsers[filetype]
-      --
-      -- -- attach
-      -- parser:attach_to_buffer(bufnr)
+      if did_parse and config.debug then
+        vim.print('parsing time: ' .. (vim.loop.hrtime() - start_time) / 1e6 .. ' ms')
+      end
+
+      return did_parse
     end,
     on_line = function(_, _, bufnr, line_number)
       for _, match in ipairs(require('blink_delimiters').get_parsed_line(bufnr, line_number)) do

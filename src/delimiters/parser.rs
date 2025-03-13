@@ -1,3 +1,5 @@
+use std::ops::RangeBounds;
+
 use logos::{Lexer, Logos, Source};
 use nvim_oxi::conversion::{Error as ConversionError, ToObject};
 use nvim_oxi::serde::Serializer;
@@ -28,17 +30,19 @@ impl lua::Pushable for Match {
     }
 }
 
-pub fn parse(buffer: Buffer) -> Option<Vec<Vec<Match>>> {
-    let filetype = buffer.get_option::<String>("filetype").unwrap();
+pub fn parse_lines<R>(buffer: Buffer, line_range: R) -> Option<Vec<Vec<Match>>>
+where
+    R: RangeBounds<usize>,
+{
+    let filetype = buffer.get_option::<String>("filetype").ok()?;
 
-    let lines = buffer
-        .get_lines(0..buffer.line_count().unwrap(), false)
-        .unwrap();
+    let lines = buffer.get_lines(line_range, false).ok()?;
     let mut text: String = "".to_string();
     for line in lines {
-        text.push_str(line.to_string_lossy().to_string().as_str());
+        text.push_str(&line.to_string_lossy());
         text.push('\n');
     }
+    nvim_oxi::print!("{:?}, {:?}, {:?}", filetype, text.len(), buffer.handle());
 
     match filetype.as_str() {
         "c" => Some(parse_with_lexer(CToken::lexer(&text))),
@@ -190,5 +194,39 @@ where
         }
     }
 
+    // Remove trailing empty line
+    if matches_by_line
+        .last()
+        .map(|matches| matches.is_empty())
+        .unwrap_or(false)
+    {
+        matches_by_line.pop();
+    }
+
     matches_by_line
+}
+
+pub fn recalculate_stack_heights(matches_by_line: &mut Vec<Vec<Match>>) {
+    let mut stack = vec![];
+
+    for matches in matches_by_line {
+        for match_ in matches {
+            match &match_.closing {
+                // Opening delimiter
+                Some(closing) => {
+                    match_.stack_height = stack.len();
+                    stack.push(closing);
+                }
+                // Closing delimiter
+                None => {
+                    if let Some(closing) = stack.last() {
+                        if *closing == &match_.text {
+                            stack.pop();
+                        }
+                    }
+                    match_.stack_height = stack.len();
+                }
+            }
+        }
+    }
 }

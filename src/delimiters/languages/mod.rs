@@ -1,3 +1,4 @@
+mod c;
 mod cpp;
 mod csharp;
 mod go;
@@ -11,6 +12,7 @@ mod rust;
 mod swift;
 mod typescript;
 
+pub use c::CToken;
 pub use cpp::CppToken;
 pub use csharp::CSharpToken;
 pub use go::GoToken;

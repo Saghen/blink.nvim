@@ -41,6 +41,7 @@ pub fn parse(buffer: Buffer) -> Option<Vec<Vec<Match>>> {
     }
 
     match filetype.as_str() {
+        "c" => Some(parse_with_lexer(CToken::lexer(&text))),
         "cpp" => Some(parse_with_lexer(CppToken::lexer(&text))),
         "csharp" => Some(parse_with_lexer(CSharpToken::lexer(&text))),
         "go" => Some(parse_with_lexer(GoToken::lexer(&text))),

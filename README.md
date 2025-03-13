@@ -24,6 +24,7 @@ Experimental library of neovim plugins with a focus on performance and simplicit
 ```lua
 {
   'saghen/blink.nvim',
+  build = 'cargo build --release', -- for delimiters
   keys = {
 	-- chartoggle
 	{

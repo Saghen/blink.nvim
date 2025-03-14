@@ -42,7 +42,6 @@ where
         text.push_str(&line.to_string_lossy());
         text.push('\n');
     }
-    nvim_oxi::print!("{:?}, {:?}, {:?}", filetype, text.len(), buffer.handle());
 
     match filetype.as_str() {
         "c" => Some(parse_with_lexer(CToken::lexer(&text))),

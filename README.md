@@ -28,7 +28,7 @@ Experimental library of neovim plugins with a focus on performance and simplicit
   keys = {
 	-- chartoggle
 	{
-	  ';',
+	  '<C-;>',
 	  function()
 	  	require('blink.chartoggle').toggle_char_eol(';')
 	  end,

@@ -13,7 +13,7 @@ Experimental library of neovim plugins with a focus on performance and simplicit
 | stable | [blink.chartoggle](/readmes/chartoggle/README.md)       | Toggles a character at the end of the current line                                                                                                              |
 | stable | [blink.cmp](https://github.com/saghen/blink.cmp)        | Performant autocompletion plugin, inspired by [nvim-cmp](https://github.com/hrsh7th/nvim-cmp)                                                                   |
 | alpha  | [blink.pairs](https://github.com/saghen/blink.pairs)    | Rainbow highlighting and intelligent auto-pairs                                                                                         			     |
-| stable | [blink.indent](/readmes/indent/README.md)               | Indent guides with scope on every keystroke                                                                                                                     |
+| stable | [blink.indent](https://github.com/saghen/blink.indent)  | Indent guides with scope on every keystroke                                                                                                                     |
 | WIP    | [blink.select](/readmes/select/README.md)               | Generic selection UI with built-in providers                                                                                                                    |
 | alpha  | [blink.tree](/readmes/tree/README.md)                   | Tree plugin with async io and FFI git, similar to [neo-tree](https://github.com/nvim-neo-tree/neo-tree.nvim) but eventually to be rewritten to be like oil.nvim |
 
@@ -53,7 +53,6 @@ Experimental library of neovim plugins with a focus on performance and simplicit
   lazy = false,
   opts = {
     chartoggle = { enabled = true },
-    indent = { enabled = true },
     tree = { enabled = true }
   }
 }
